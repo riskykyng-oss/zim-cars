@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files (never commit real credentials)
+.env
+**/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Build output
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+**/.vite/
+
+# Uploaded images (stored in Supabase in production)
+uploads/
+**/uploads/
+!**/uploads/.gitkeep
+
+# Deployment state
+.vercel
+**/.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test / coverage
+coverage/
+**/coverage/
+.nyc_output/
+
+# Prisma local artifacts
+*.db
+*.db-journal

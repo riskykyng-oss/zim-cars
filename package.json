@@ -1,0 +1,32 @@
+{
+  "name": "zim-cars",
+  "version": "1.0.0",
+  "description": "Car sales attribution and commission management platform",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build --workspace=client && npm run build --workspace=server",
+    "postinstall": "npm run generate --workspace=server",
+    "start": "npm run start --workspace=server",
+    "db:deploy": "npm run migrate:deploy --workspace=server",
+    "db:seed": "npm run seed --workspace=server",
+    "db:studio": "npm run studio --workspace=server",
+    "db:migrate": "npm run migrate --workspace=server",
+    "storage:setup": "npm run storage:setup --workspace=server",
+    "storage:migrate": "npm run storage:migrate --workspace=server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "esbuild": "^0.28.2"
+  }
+}
