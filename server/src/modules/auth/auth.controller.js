@@ -367,3 +367,52 @@ export const rejectDealer = async (req, res) => {
     return res.status(500).json({ error: 'Failed to reject dealer' });
   }
 };
+
+export const getPublicDealerProfile = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const dealer = await prisma.dealer.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        phone: true,
+        location: true,
+        status: true,
+        trialEndsAt: true,
+        subscriptionEndsAt: true,
+        createdAt: true,
+      },
+    });
+
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    const isEligible =
+      dealer.status === 'active' ||
+      (dealer.status === 'trial' && dealer.trialEndsAt && new Date(dealer.trialEndsAt) > new Date());
+
+    if (!isEligible) {
+      return res.status(404).json({ error: 'Dealer profile not available' });
+    }
+
+    const vehicles = await prisma.vehicle.findMany({
+      where: {
+        dealerId: dealer.id,
+        status: 'available',
+        images: { some: {} },
+      },
+      include: {
+        images: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json({ dealer, vehicles });
+  } catch (error) {
+    console.error('Get public dealer profile error:', error);
+    return res.status(500).json({ error: 'Failed to fetch dealer profile' });
+  }
+};

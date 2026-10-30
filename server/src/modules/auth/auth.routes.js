@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, logout, getMe, registerDealer, uploadVerification, getDealerVerification, getAllDealers, verifyDealer, rejectDealer } from './auth.controller.js';
+import { login, logout, getMe, registerDealer, uploadVerification, getDealerVerification, getAllDealers, verifyDealer, rejectDealer, getPublicDealerProfile } from './auth.controller.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { upload } from '../../middleware/upload.js';
 
@@ -23,6 +23,7 @@ const registerLimiter = rateLimit({
   message: { error: 'Too many registration attempts. Please try again later.' },
 });
 
+router.get('/dealers/public/:slug', getPublicDealerProfile);
 router.post('/login', loginLimiter, login);
 router.post('/register-dealer', registerLimiter, registerDealer);
 router.post('/logout', requireAuth, logout);
