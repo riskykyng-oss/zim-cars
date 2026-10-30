@@ -49,6 +49,12 @@ export const getPublicVehicles = async (req, res) => {
     const where = {
       status: 'available',
       images: { some: {} },
+      dealer: {
+        OR: [
+          { status: 'active', subscriptionEndsAt: { gt: new Date() } },
+          { status: 'trial', trialEndsAt: { gt: new Date() } },
+        ],
+      },
     };
 
     if (make) {
