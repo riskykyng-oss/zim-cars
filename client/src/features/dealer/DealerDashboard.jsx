@@ -723,7 +723,7 @@ const DealerDashboard = () => {
                 <option value="business_registration">Business Registration</option>
                 <option value="other">Other</option>
               </select>
-              <input type="file" accept="image/*,.pdf" onChange={(e) => setDocFile(e.target.files[0])} className="p-2 border rounded min-h-[44px]" />
+              <input type="file" accept="image/*,application/pdf" onChange={(e) => setDocFile(e.target.files[0])} className="p-2 border rounded min-h-[44px]" />
               <input type="text" placeholder="Notes (optional)" value={docNotes} onChange={(e) => setDocNotes(e.target.value)} className="p-2 border rounded md:col-span-2 min-h-[44px]" />
               <button type="submit" disabled={uploadingDoc} className="bg-blue-600 text-white px-4 py-2 rounded min-h-[44px] md:col-span-2 disabled:opacity-50">{uploadingDoc ? 'Uploading...' : 'Upload Document'}</button>
             </form>
