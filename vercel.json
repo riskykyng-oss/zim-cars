@@ -5,7 +5,7 @@
   "outputDirectory": "client/dist",
   "installCommand": "npm install --include=dev",
   "functions": {
-    "api/[...path].js": {
+    "api/index.js": {
       "memory": 1024,
       "maxDuration": 30,
       "includeFiles": "node_modules/.prisma/client/**"
@@ -14,10 +14,10 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "/api"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

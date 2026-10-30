@@ -21,7 +21,7 @@ Lead attribution, inventory and commission management for a Zimbabwean car marke
 ## Project layout
 
 ```
-api/[...path].js        Vercel catch-all function that runs the Express app
+api/index.js            Vercel function that runs the Express app (all /api/* paths)
 client/                 React app (built to client/dist)
 server/src/app.js       Express app (exported for Vercel, listens locally)
 server/prisma/          Prisma schema, migrations and seed
@@ -97,7 +97,8 @@ All variables live in `server/.env`. On Vercel, add the same keys in
 ## Deploying to Vercel
 
 The repository is a single Vercel project: the Vite build is served statically
-and every `/api/*` request is handled by `api/[...path].js`.
+and every `/api/*` request is handled by `api/index.js` through a rewrite that
+preserves the original request path.
 
 ### Option A — GitHub integration (recommended)
 
