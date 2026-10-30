@@ -9,6 +9,7 @@ import VehicleDetail from './features/marketplace/VehicleDetail';
 import DealerDashboard from './features/dealer/DealerDashboard';
 import AdminDashboard from './features/admin/AdminDashboard';
 import DealerPortfolio from './features/dealers/DealerPortfolio';
+import Terms from './features/legal/Terms';
 import Navbar from './components/Navbar';
 import { captureRef } from './utils/ref';
 
@@ -48,6 +49,7 @@ const AppRoutes = () => {
         <Route path="/vehicle/:id" element={<VehicleDetail />} />
         <Route path="/car/:id" element={<VehicleDetail />} />
         <Route path="/dealers/:slug" element={<DealerPortfolio />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dealer'} /> : <Login />} />
         <Route path="/become-a-dealer" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dealer'} /> : <RegisterDealer />} />
         <Route path="/dealer" element={

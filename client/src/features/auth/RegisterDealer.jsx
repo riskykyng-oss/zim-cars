@@ -17,6 +17,7 @@ const RegisterDealer = () => {
     password: '',
     confirmPassword: '',
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,6 +28,11 @@ const RegisterDealer = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!acceptedTerms) {
+      setError('You must accept the Terms & Conditions to register');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -186,6 +192,23 @@ const RegisterDealer = () => {
               <p className="text-sm text-yellow-800">
                 <strong>Verification required:</strong> After registration, you must upload a clear copy of your National ID/Passport and proof of address for admin review. Only legitimate, verifiable dealers will be approved.
               </p>
+            </div>
+
+            <div className="flex items-start">
+              <input
+                id="terms"
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
+              />
+              <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
+                I agree to the{' '}
+                <Link to="/terms" target="_blank" className="text-blue-600 hover:underline">
+                  Terms & Conditions
+                </Link>
+                , including the $3 joining fee, $2/month subscription, and 3% commission on platform sales.
+              </label>
             </div>
 
             <div>
