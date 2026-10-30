@@ -39,6 +39,13 @@ export const createSale = async (req, res) => {
       return res.status(400).json({ error: 'This lead is not linked to a vehicle.' });
     }
 
+    // Commission only applies to platform-generated leads
+    if (!lead.referralCode) {
+      return res.status(400).json({ 
+        error: 'Commission can only be recorded for platform-generated leads. This lead has no platform reference and cannot be counted for commission.' 
+      });
+    }
+
     const commissionRate = lead.dealer.commissionRate;
     const commissionAmount = Math.round(salePrice * (commissionRate / 100) * 100) / 100;
     const actor = req.session.email || req.session.userId;
