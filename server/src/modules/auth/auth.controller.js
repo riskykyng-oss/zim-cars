@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../../config/database.js';
+import crypto from 'crypto';
 
 const publicUser = (user) => ({
   id: user.id,
@@ -9,6 +10,18 @@ const publicUser = (user) => ({
   dealerId: user.dealerId,
   dealerName: user.dealer?.name,
 });
+
+const slugify = (text) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+};
 
 export const login = async (req, res) => {
   try {
@@ -83,5 +96,186 @@ export const getMe = async (req, res) => {
   } catch (error) {
     console.error('Get me error:', error);
     return res.status(500).json({ error: 'Failed to get user' });
+  }
+};
+
+export const registerDealer = async (req, res) => {
+  try {
+    const {
+      businessName,
+      ownerFullName,
+      email,
+      phone,
+      location,
+      idNumber,
+      ecoCashName,
+      password,
+    } = req.body;
+
+    if (!businessName || !ownerFullName || !email || !phone || !password) {
+      return res.status(400).json({ error: 'All required fields must be filled' });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const emailLower = String(email).trim().toLowerCase();
+    const phoneClean = String(phone).replace(/\s+/g, '');
+
+    const existingUser = await prisma.user.findUnique({ where: { email: emailLower } });
+    if (existingUser) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    const existingDealerByPhone = await prisma.dealer.findFirst({ where: { phone: phoneClean } });
+    if (existingDealerByPhone) {
+      return res.status(409).json({ error: 'A dealer with this phone number already exists' });
+    }
+
+    const baseSlug = slugify(businessName);
+    let slug = baseSlug || `dealer-${crypto.randomUUID().slice(0, 8)}`;
+    let counter = 1;
+    while (await prisma.dealer.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${counter++}`;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const trialEndsAt = new Date();
+    trialEndsAt.setMonth(trialEndsAt.getMonth() + 2);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const dealer = await tx.dealer.create({
+        data: {
+          name: String(businessName).trim(),
+          slug,
+          phone: phoneClean,
+          location: location ? String(location).trim() : null,
+          ownerFullName: String(ownerFullName).trim(),
+          businessEmail: emailLower,
+          ecoCashName: ecoCashName ? String(ecoCashName).trim() : null,
+          idNumber: idNumber ? String(idNumber).trim() : null,
+          commissionRate: 3.0,
+          status: 'pending_verification',
+          verificationStatus: 'pending',
+          plan: 'trial',
+          trialEndsAt,
+        },
+      });
+
+      const user = await tx.user.create({
+        data: {
+          dealerId: dealer.id,
+          name: String(ownerFullName).trim(),
+          email: emailLower,
+          passwordHash: hashedPassword,
+          role: 'dealer_owner',
+        },
+      });
+
+      return { dealer, user };
+    });
+
+    // Log them in after registration
+    await new Promise((resolve, reject) => {
+      req.session.regenerate((err) => (err ? reject(err) : resolve()));
+    });
+
+    req.session.userId = result.user.id;
+    req.session.email = result.user.email;
+    req.session.role = result.user.role;
+    req.session.dealerId = result.user.dealerId;
+    req.session.dealerName = result.dealer.name;
+
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => (err ? reject(err) : resolve()));
+    });
+
+    return res.status(201).json({
+      message: 'Registration submitted. Please upload your verification documents for admin review.',
+      user: publicUser(result.user),
+      dealer: result.dealer,
+    });
+  } catch (error) {
+    console.error('Register dealer error:', error);
+    return res.status(500).json({ error: 'Registration failed' });
+  }
+};
+
+export const uploadVerification = async (req, res) => {
+  try {
+    if (!req.session.dealerId) {
+      return res.status(403).json({ error: 'No dealer assigned' });
+    }
+
+    const { type, notes } = req.body;
+    if (!type) {
+      return res.status(400).json({ error: 'Document type required' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Document file required' });
+    }
+
+    const allowedTypes = ['national_id', 'passport', 'proof_of_address', 'business_registration', 'other'];
+    if (!allowedTypes.includes(type)) {
+      return res.status(400).json({ error: 'Invalid document type' });
+    }
+
+    const { uploadDir, ensureUploadDir } = await import('../../middleware/upload.js');
+    const path = await import('path');
+    const fs = await import('fs');
+    const { v4: uuidv4 } = await import('uuid');
+
+    ensureUploadDir();
+    const extension = path.extname(req.file.originalname).toLowerCase() || '.jpg';
+    const filename = `${uuidv4()}${extension}`;
+    fs.writeFileSync(path.join(uploadDir, filename), req.file.buffer);
+    const fileUrl = `/uploads/${filename}`;
+
+    const verification = await prisma.dealerVerification.create({
+      data: {
+        dealerId: req.session.dealerId,
+        type,
+        fileUrl,
+        notes: notes || null,
+        status: 'pending',
+      },
+    });
+
+    await prisma.dealer.update({
+      where: { id: req.session.dealerId },
+      data: { verificationStatus: 'in_review' },
+    });
+
+    return res.status(201).json(verification);
+  } catch (error) {
+    console.error('Upload verification error:', error);
+    return res.status(500).json({ error: 'Failed to upload document' });
+  }
+};
+
+export const getDealerVerification = async (req, res) => {
+  try {
+    if (!req.session.dealerId) {
+      return res.status(403).json({ error: 'No dealer assigned' });
+    }
+
+    const dealer = await prisma.dealer.findUnique({
+      where: { id: req.session.dealerId },
+      include: { verifications: { orderBy: { createdAt: 'desc' } } },
+    });
+
+    return res.json({
+      dealer: {
+        status: dealer?.status,
+        verificationStatus: dealer?.verificationStatus,
+        rejectionReason: dealer?.rejectionReason,
+      },
+      verifications: dealer?.verifications || [],
+    });
+  } catch (error) {
+    console.error('Get verification error:', error);
+    return res.status(500).json({ error: 'Failed to get verification status' });
   }
 };
