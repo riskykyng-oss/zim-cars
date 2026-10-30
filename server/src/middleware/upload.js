@@ -17,15 +17,27 @@ export const ensureUploadDir = () => {
   }
 };
 
-const fileFilter = (req, file, cb) => {
+const imageFileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+  const mimetype = /image\/(jpeg|jpg|png|webp)/.test(file.mimetype);
 
   if (mimetype && extname) {
     return cb(null, true);
   }
   return cb(new Error('Only image files (jpeg, jpg, png, webp) are allowed!'));
+};
+
+const documentFileFilter = (req, file, cb) => {
+  const allowedExt = /jpeg|jpg|png|webp|pdf/;
+  const allowedMime = /image\/(jpeg|jpg|png|webp)|application\/pdf/;
+  const extname = allowedExt.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedMime.test(file.mimetype);
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  }
+  return cb(new Error('Only images or PDF files are allowed!'));
 };
 
 export const upload = multer({
@@ -34,5 +46,13 @@ export const upload = multer({
     // Vercel rejects request bodies above 4.5 MB, so stay below that.
     fileSize: 4 * 1024 * 1024,
   },
-  fileFilter,
+  fileFilter: imageFileFilter,
+});
+
+export const uploadDocument = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 4 * 1024 * 1024,
+  },
+  fileFilter: documentFileFilter,
 });

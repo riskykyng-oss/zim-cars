@@ -1,8 +1,9 @@
 import prisma from '../../config/database.js';
 import path from 'path';
-import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { hasSupabaseStorage, uploadDocumentBuffer } from '../../config/supabase.js';
 import { uploadDir, ensureUploadDir } from '../../middleware/upload.js';
+import fs from 'fs';
 
 export const getPaymentInfo = async (req, res) => {
   try {
@@ -41,11 +42,18 @@ export const submitPayment = async (req, res) => {
 
     let proofUrl = null;
     if (req.file) {
-      ensureUploadDir();
       const extension = path.extname(req.file.originalname).toLowerCase() || '.jpg';
-      const filename = `${uuidv4()}${extension}`;
-      fs.writeFileSync(path.join(uploadDir, filename), req.file.buffer);
-      proofUrl = `/uploads/${filename}`;
+      const filename = `payments/${req.session.dealerId}/${uuidv4()}${extension}`;
+      if (hasSupabaseStorage()) {
+        proofUrl = await uploadDocumentBuffer(req.file.buffer, filename, req.file.mimetype, process.env.SUPABASE_PAYMENT_BUCKET || 'dealer-payments');
+      } else {
+        if (process.env.VERCEL) {
+          return res.status(500).json({ error: 'Payment proof storage is not configured.' });
+        }
+        ensureUploadDir();
+        fs.writeFileSync(path.join(uploadDir, filename.replace('payments/', '')), req.file.buffer);
+        proofUrl = `/uploads/${filename.replace('payments/', '')}`;
+      }
     }
 
     const { senderName } = req.body;

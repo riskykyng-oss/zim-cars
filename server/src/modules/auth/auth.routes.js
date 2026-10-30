@@ -2,7 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { login, logout, getMe, registerDealer, uploadVerification, getDealerVerification, getAllDealers, verifyDealer, rejectDealer, getPublicDealerProfile } from './auth.controller.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
-import { upload } from '../../middleware/upload.js';
+import { uploadDocument } from '../../middleware/upload.js';
 
 const router = express.Router();
 
@@ -28,7 +28,7 @@ router.post('/login', loginLimiter, login);
 router.post('/register-dealer', registerLimiter, registerDealer);
 router.post('/logout', requireAuth, logout);
 router.get('/me', getMe);
-router.post('/dealer/verify/upload', requireAuth, upload.single('document'), uploadVerification);
+router.post('/dealer/verify/upload', requireAuth, uploadDocument.single('document'), uploadVerification);
 router.get('/dealer/verify', requireAuth, getDealerVerification);
 router.get('/dealers', requireAuth, requireRole(['admin']), getAllDealers);
 router.post('/dealers/:id/verify', requireAuth, requireRole(['admin']), verifyDealer);

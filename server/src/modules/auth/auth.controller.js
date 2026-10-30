@@ -222,16 +222,26 @@ export const uploadVerification = async (req, res) => {
       return res.status(400).json({ error: 'Invalid document type' });
     }
 
-    const { uploadDir, ensureUploadDir } = await import('../../middleware/upload.js');
     const path = await import('path');
-    const fs = await import('fs');
     const { v4: uuidv4 } = await import('uuid');
+    const { hasSupabaseStorage, uploadDocumentBuffer } = await import('../../config/supabase.js');
+    const { uploadDir, ensureUploadDir } = await import('../../middleware/upload.js');
+    const fs = await import('fs');
 
-    ensureUploadDir();
     const extension = path.extname(req.file.originalname).toLowerCase() || '.jpg';
-    const filename = `${uuidv4()}${extension}`;
-    fs.writeFileSync(path.join(uploadDir, filename), req.file.buffer);
-    const fileUrl = `/uploads/${filename}`;
+    const filename = `verifications/${req.session.dealerId}/${uuidv4()}${extension}`;
+
+    let fileUrl;
+    if (hasSupabaseStorage()) {
+      fileUrl = await uploadDocumentBuffer(req.file.buffer, filename, req.file.mimetype);
+    } else {
+      if (process.env.VERCEL) {
+        return res.status(500).json({ error: 'Document storage is not configured.' });
+      }
+      ensureUploadDir();
+      fs.writeFileSync(path.join(uploadDir, filename.replace('verifications/', '')), req.file.buffer);
+      fileUrl = `/uploads/${filename.replace('verifications/', '')}`;
+    }
 
     const verification = await prisma.dealerVerification.create({
       data: {

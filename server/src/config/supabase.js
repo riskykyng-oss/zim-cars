@@ -31,6 +31,17 @@ export const uploadImageBuffer = async (buffer, filename, contentType) => {
   return getPublicImageUrl(filename);
 };
 
+export const uploadDocumentBuffer = async (buffer, filename, contentType, bucket = process.env.SUPABASE_DOCUMENTS_BUCKET || 'dealer-documents') => {
+  const { error } = await supabase
+    .storage
+    .from(bucket)
+    .upload(filename, buffer, { contentType, upsert: false });
+
+  if (error) throw error;
+  return supabase.storage.from(bucket).getPublicUrl(filename).data.publicUrl;
+};
+
+
 export const deleteImageByUrl = async (imageUrl) => {
   const marker = `/object/public/${storageBucket}/`;
   const markerIndex = imageUrl.indexOf(marker);
