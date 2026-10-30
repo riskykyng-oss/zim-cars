@@ -48,3 +48,6 @@ coverage/
 # Prisma local artifacts
 *.db
 *.db-journal
+
+.vercel
+.env*
