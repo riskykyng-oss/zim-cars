@@ -36,6 +36,7 @@ Supabase project for image storage.
 
 ```bash
 npm install
+npm run generate                     # generate the Prisma client
 cp server/.env.example server/.env   # then fill in the values
 npm run db:deploy                     # apply migrations
 npm run db:seed                       # create the first admin/dealer
@@ -105,7 +106,9 @@ and every `/api/*` request is handled by `api/[...path].js`.
 3. Framework preset: **Vite**. Build command: `npm run build`. Output directory:
    `client/dist` (already set in `vercel.json`).
 4. Add every production environment variable listed above before the first
-   deploy. Set `NODE_ENV=production` and `CLIENT_URL` to the final URL.
+   deploy. Set `CLIENT_URL` to the final URL. Do **not** set `NODE_ENV`
+   manually — Vercel sets it automatically, and a manually set
+   `NODE_ENV=production` can make npm skip dev dependencies during install.
 5. Deploy.
 6. Point `CLIENT_URL` at the assigned domain (and any custom domain), then
    redeploy if it changed.
