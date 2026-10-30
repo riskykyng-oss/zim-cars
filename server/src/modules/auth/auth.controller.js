@@ -283,6 +283,8 @@ export const getDealerVerification = async (req, res) => {
         rejectionReason: dealer?.rejectionReason,
         trialEndsAt: dealer?.trialEndsAt,
         subscriptionEndsAt: dealer?.subscriptionEndsAt,
+        slug: dealer?.slug,
+        ownerFullName: dealer?.ownerFullName,
       },
       verifications: dealer?.verifications || [],
     });

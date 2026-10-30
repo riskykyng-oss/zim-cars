@@ -205,6 +205,45 @@ const DealerDashboard = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Dealer Dashboard</h1>
       
+      <div className="bg-white rounded shadow p-6 mb-6">
+        <h2 className="text-lg font-bold mb-3">Onboarding Checklist</h2>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${verification?.ownerFullName ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{verification?.ownerFullName ? '✓' : '1'}</span>
+            <span className={verification?.ownerFullName ? 'text-gray-700' : 'text-gray-900 font-medium'}>Complete registration details</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${verificationDocs.length > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{verificationDocs.length > 0 ? '✓' : '2'}</span>
+            <span className={verificationDocs.length > 0 ? 'text-gray-700' : 'text-gray-900 font-medium'}>Upload National ID/Passport & Proof of Address</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${verification?.verificationStatus === 'verified' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{verification?.verificationStatus === 'verified' ? '✓' : '3'}</span>
+            <span className={verification?.verificationStatus === 'verified' ? 'text-gray-700' : 'text-gray-900 font-medium'}>Await admin verification & approval</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${payments.some(p => p.status === 'approved') || verification?.status === 'trial' || verification?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{payments.some(p => p.status === 'approved') || verification?.status === 'trial' || verification?.status === 'active' ? '✓' : '4'}</span>
+            <span className={payments.some(p => p.status === 'approved') || verification?.status === 'trial' || verification?.status === 'active' ? 'text-gray-700' : 'text-gray-900 font-medium'}>Activate account (Trial/Subscription)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${verification?.status === 'trial' || verification?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{verification?.status === 'trial' || verification?.status === 'active' ? '✓' : '5'}</span>
+            <span className={verification?.status === 'trial' || verification?.status === 'active' ? 'text-gray-700' : 'text-gray-900 font-medium'}>Start listing vehicles</span>
+          </div>
+        </div>
+        {(verification?.status === 'trial' || verification?.status === 'active') && (
+          <div className="mt-4">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/dealers/${verification?.slug || ''}`);
+                alert('Public page link copied!');
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 min-h-[44px]"
+            >
+              View/Copy My Public Page
+            </button>
+          </div>
+        )}
+      </div>
+
       {verification?.verificationStatus !== 'verified' && (
         <div className="bg-yellow-50 border border-yellow-200 p-4 rounded mb-6">
           <h3 className="font-semibold text-yellow-800 mb-1">Account Pending Verification</h3>
