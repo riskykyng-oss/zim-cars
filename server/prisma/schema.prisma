@@ -18,8 +18,13 @@ model Dealer {
   slug                String    @unique @db.VarChar(100)
   phone               String?   @db.VarChar(20)
   location            String?   @db.VarChar(100)
+  ownerFullName       String?   @map("owner_full_name") @db.VarChar(150)
+  businessEmail       String?   @map("business_email") @db.VarChar(255)
+  ecoCashName         String?   @map("ecocash_name") @db.VarChar(150)
+  idNumber            String?   @map("id_number") @db.VarChar(50)
   commissionRate      Float     @default(3.00) @map("commission_rate")
-  status              String    @default("trial") @db.VarChar(20) // trial | pending_payment | active | expired | suspended
+  status              String    @default("pending_verification") @db.VarChar(30) // pending_verification | verified | pending_payment | trial | active | expired | suspended | rejected
+  verificationStatus  String    @default("pending") @db.VarChar(20) // pending | in_review | verified | rejected
   plan                String    @default("trial") @db.VarChar(20) // trial | starter
   trialEndsAt         DateTime? @map("trial_ends_at")
   subscriptionEndsAt  DateTime? @map("subscription_ends_at")
@@ -27,6 +32,9 @@ model Dealer {
   onboardingPaid      Boolean   @default(false) @map("onboarding_paid")
   subscriptionPaid    Boolean   @default(false) @map("subscription_paid")
   joinedAt            DateTime  @default(now()) @map("joined_at")
+  verifiedAt          DateTime? @map("verified_at")
+  verifiedBy          String?   @map("verified_by")
+  rejectionReason     String?   @map("rejection_reason") @db.Text
   approvedAt          DateTime? @map("approved_at")
   approvedBy          String?   @map("approved_by")
   createdAt           DateTime  @default(now()) @map("created_at")
@@ -36,6 +44,7 @@ model Dealer {
   leads               Lead[]
   auditLogs           AuditLog[]
   payments            Payment[]
+  verifications       DealerVerification[]
   
   @@map("dealers")
 }
@@ -200,6 +209,7 @@ model Payment {
   currency    String   @default("USD") @db.VarChar(3)
   method      String   @db.VarChar(30) // ecocash | innbucks | onemoney | bank_transfer
   reference   String?  @db.VarChar(150)
+  senderName  String?  @map("sender_name") @db.VarChar(150)
   proofUrl    String?  @map("proof_url")
   status      String   @default("pending") @db.VarChar(20) // pending | approved | rejected
   notes       String?  @db.Text
@@ -213,6 +223,24 @@ model Payment {
   @@index([status])
   @@index([createdAt])
   @@map("payments")
+}
+
+model DealerVerification {
+  id          String   @id @default(uuid())
+  dealerId    String   @map("dealer_id")
+  type        String   @db.VarChar(30) // national_id | passport | proof_of_address | business_registration | other
+  fileUrl     String   @map("file_url")
+  notes       String?  @db.Text
+  status      String   @default("pending") @db.VarChar(20) // pending | approved | rejected
+  reviewedBy  String?  @map("reviewed_by")
+  reviewedAt  DateTime? @map("reviewed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  dealer      Dealer   @relation(fields: [dealerId], references: [id])
+  
+  @@index([dealerId])
+  @@index([status])
+  @@map("dealer_verifications")
 }
 
 model AuditLog {

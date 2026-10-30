@@ -19,6 +19,27 @@ export const requireDealerActive = async (req, res, next) => {
       return res.status(403).json({ error: 'Dealer not found' });
     }
 
+    if (dealer.verificationStatus !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Your dealer account is pending verification. Upload your ID and supporting documents for review.',
+        code: 'NOT_VERIFIED'
+      });
+    }
+
+    if (dealer.status === 'rejected') {
+      return res.status(403).json({ 
+        error: `Account rejected: ${dealer.rejectionReason || 'Does not meet verification requirements.'}`,
+        code: 'REJECTED'
+      });
+    }
+
+    if (dealer.status === 'suspended') {
+      return res.status(403).json({ 
+        error: 'Your account has been suspended. Contact support.',
+        code: 'SUSPENDED'
+      });
+    }
+
     // Check if trial is still active
     if (dealer.status === 'trial') {
       if (dealer.trialEndsAt && new Date(dealer.trialEndsAt) < new Date()) {

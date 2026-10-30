@@ -48,6 +48,8 @@ export const submitPayment = async (req, res) => {
       proofUrl = `/uploads/${filename}`;
     }
 
+    const { senderName } = req.body;
+
     const payment = await prisma.payment.create({
       data: {
         dealerId: req.session.dealerId,
@@ -56,6 +58,7 @@ export const submitPayment = async (req, res) => {
         currency: 'USD',
         method,
         reference: reference || null,
+        senderName: senderName || null,
         proofUrl,
         status: 'pending',
       },

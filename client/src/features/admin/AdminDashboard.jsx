@@ -6,6 +6,7 @@ const AdminDashboard = () => {
   const [commissions, setCommissions] = useState(null);
   const [sales, setSales] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [dealerPayments, setDealerPayments] = useState([]);
   const [leads, setLeads] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [filterRef, setFilterRef] = useState('');
@@ -20,20 +21,47 @@ const AdminDashboard = () => {
   
   const fetchData = async () => {
     try {
-      const [commRes, salesRes, paymentsRes, leadsRes, vehiclesRes] = await Promise.all([
+      const [commRes, salesRes, paymentsRes, dealerPaymentsRes, leadsRes, vehiclesRes] = await Promise.all([
         api.get('/commissions/summary'),
         api.get('/sales'),
         api.get('/commissions/payments'),
+        api.get('/payments/all').catch(() => ({ data: [] })),
         api.get('/leads'),
         api.get('/vehicles/all').catch(() => api.get('/vehicles'))
       ]);
       setCommissions(commRes.data);
       setSales(salesRes.data);
       setPayments(paymentsRes.data);
+      setDealerPayments(dealerPaymentsRes.data);
       setLeads(leadsRes.data);
       setVehicles(vehiclesRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+    }
+  };
+
+  const approveDealerPayment = async (paymentId) => {
+    const notes = prompt('Add approval notes (optional):');
+    try {
+      await api.post(`/payments/${paymentId}/approve`, { notes });
+      alert('Payment approved. Dealer activated.');
+      fetchData();
+    } catch (error) {
+      console.error('Error approving payment:', error);
+      alert('Error approving payment');
+    }
+  };
+
+  const rejectDealerPayment = async (paymentId) => {
+    const notes = prompt('Reason for rejection (required):');
+    if (!notes) return;
+    try {
+      await api.post(`/payments/${paymentId}/reject`, { notes });
+      alert('Payment rejected.');
+      fetchData();
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+      alert('Error rejecting payment');
     }
   };
   
@@ -109,6 +137,7 @@ const AdminDashboard = () => {
       
       <div className="flex flex-wrap gap-2 mb-6">
         <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Overview</button>
+        <button onClick={() => setActiveTab('dealerPayments')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'dealerPayments' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Dealer Payments ({dealerPayments.filter(p => p.status === 'pending').length})</button>
         <button onClick={() => setActiveTab('sales')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'sales' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Sales & Referrals</button>
         <button onClick={() => setActiveTab('commissions')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'commissions' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Commission by Ref</button>
         <button onClick={() => setActiveTab('qr')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'qr' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>QR Codes</button>
@@ -135,6 +164,101 @@ const AdminDashboard = () => {
         </div>
       )}
       
+      {activeTab === 'dealerPayments' && (
+        <>
+          <h2 className="text-xl font-bold mb-2">Dealer Subscription & Joining Payments</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Verify each payment against your EcoCash statement before approving. Approving activates the dealer and
+            sets a 1-month subscription. Reject only when the proof does not match a real transaction.
+          </p>
+          <div className="bg-white rounded shadow overflow-hidden">
+            {dealerPayments.length === 0 ? (
+              <div className="text-center py-12 text-gray-600">No dealer payments submitted yet.</div>
+            ) : (
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left">Dealer</th>
+                        <th className="px-4 py-2 text-left">Type</th>
+                        <th className="px-4 py-2 text-left">Amount</th>
+                        <th className="px-4 py-2 text-left">Method</th>
+                        <th className="px-4 py-2 text-left">Reference</th>
+                        <th className="px-4 py-2 text-left">Proof</th>
+                        <th className="px-4 py-2 text-left">Status</th>
+                        <th className="px-4 py-2 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dealerPayments.map((payment) => (
+                        <tr key={payment.id} className="border-t">
+                          <td className="px-4 py-2">
+                            <div className="font-semibold">{payment.dealer?.name}</div>
+                            <div className="text-xs text-gray-500">{payment.dealer?.phone || payment.dealer?.slug}</div>
+                          </td>
+                          <td className="px-4 py-2 capitalize">{payment.type}</td>
+                          <td className="px-4 py-2">${payment.amount} {payment.currency}</td>
+                          <td className="px-4 py-2 capitalize">{payment.method}</td>
+                          <td className="px-4 py-2 text-sm font-mono">{payment.reference || '-'}</td>
+                          <td className="px-4 py-2">
+                            {payment.proofUrl ? (
+                              <a href={payment.proofUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">View proof</a>
+                            ) : '-'}
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              payment.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              payment.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>{payment.status}</span>
+                          </td>
+                          <td className="px-4 py-2">
+                            {payment.status === 'pending' ? (
+                              <div className="flex gap-2">
+                                <button onClick={() => approveDealerPayment(payment.id)} className="bg-green-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Approve</button>
+                                <button onClick={() => rejectDealerPayment(payment.id)} className="bg-red-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Reject</button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-500">{payment.notes || '-'}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="md:hidden divide-y">
+                  {dealerPayments.map((payment) => (
+                    <div key={payment.id} className="p-4">
+                      <div className="flex justify-between mb-1">
+                        <span className="font-semibold">{payment.dealer?.name}</span>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          payment.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          payment.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>{payment.status}</span>
+                      </div>
+                      <p className="text-sm capitalize">{payment.type} • ${payment.amount} • {payment.method}</p>
+                      <p className="text-sm text-gray-600 font-mono">{payment.reference || 'No reference'}</p>
+                      {payment.proofUrl && (
+                        <a href={payment.proofUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">View proof</a>
+                      )}
+                      {payment.status === 'pending' && (
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={() => approveDealerPayment(payment.id)} className="bg-green-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Approve</button>
+                          <button onClick={() => rejectDealerPayment(payment.id)} className="bg-red-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Reject</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
       {activeTab === 'sales' && (
         <>
           <div className="flex flex-wrap gap-2 mb-4">
