@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { assetUrl } from '../../utils/assets';
-import { MessageCircle, ArrowLeft, Phone, User, ShieldCheck } from 'lucide-react';
+import { MessageCircle, ArrowLeft, Phone, User, ShieldCheck, Share2, Facebook, Twitter } from 'lucide-react';
 import { getRef, captureRef } from '../../utils/ref';
 
 const VehicleDetail = () => {
@@ -86,12 +86,70 @@ const VehicleDetail = () => {
   if (loading) return <div className="flex items-center justify-center h-64">Loading...</div>;
   if (!vehicle) return <div className="flex items-center justify-center h-64">Vehicle not found</div>;
   
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://zim-cars.vercel.app/car/${vehicle.id}`;
+  const shareText = `${vehicle.year} ${vehicle.make} ${vehicle.model} - $${vehicle.price.toLocaleString()} | Zim Cars`;
+  
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.error('Share failed:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copied to clipboard!');
+      } catch (err) {
+        console.error('Copy failed:', err);
+      }
+    }
+  };
+  
+  const shareToFacebook = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank', 'width=600,height=400');
+  };
+  
+  const shareToTwitter = () => {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank', 'width=600,height=400');
+  };
+  
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 pb-24 md:pb-8">
-      <Link to="/cars" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
-        <ArrowLeft className="w-4 h-4" />
-        Back to Browse
-      </Link>
+      <div className="flex items-center justify-between mb-6">
+        <Link to="/cars" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Browse
+        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleShare}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            title="Share"
+          >
+            <Share2 className="w-4 h-4" />
+            Share
+          </button>
+          <button
+            onClick={shareToFacebook}
+            className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            title="Share on Facebook"
+          >
+            <Facebook className="w-4 h-4" />
+          </button>
+          <button
+            onClick={shareToTwitter}
+            className="p-2 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors"
+            title="Share on X"
+          >
+            <Twitter className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
       
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
         <div className="h-64 md:h-96 bg-gray-200">
@@ -175,7 +233,7 @@ const VehicleDetail = () => {
               </>
             ) : (
               <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg">
-                <p className="font-semibold mb-1">✓ Enquiry sent</p>
+                <p className="font-semibold mb-1">âœ“ Enquiry sent</p>
                 <p className="text-sm">WhatsApp should have opened with your pre-filled message.</p>
               </div>
             )}
