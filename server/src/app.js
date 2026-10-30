@@ -15,6 +15,7 @@ import vehiclesRoutes from './modules/vehicles/vehicles.routes.js';
 import leadsRoutes from './modules/leads/leads.routes.js';
 import salesRoutes from './modules/sales/sales.routes.js';
 import commissionsRoutes from './modules/commissions/commissions.routes.js';
+import paymentsRoutes from './modules/payments/payments.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,6 +99,7 @@ app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/leads', leadsRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/commissions', commissionsRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // Unknown API route
 app.use('/api', (req, res) => {
