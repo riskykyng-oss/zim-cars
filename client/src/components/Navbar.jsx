@@ -21,6 +21,7 @@ const Navbar = () => {
             {!user && (
               <>
                 <a href="#how-it-works" className="hover:text-blue-600 transition-colors hidden md:block">How it works</a>
+                <Link to="/become-a-dealer" className="hover:text-blue-600 transition-colors hidden md:block">Become a Dealer</Link>
                 <Link to="/login" className="hover:text-blue-600 transition-colors hidden md:block">Sign in</Link>
               </>
             )}

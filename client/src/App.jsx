@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './app/AuthContext';
 import Home from './features/home/Home';
 import Login from './features/admin/Login';
+import RegisterDealer from './features/auth/RegisterDealer';
 import Marketplace from './features/marketplace/Marketplace';
 import VehicleDetail from './features/marketplace/VehicleDetail';
 import DealerDashboard from './features/dealer/DealerDashboard';
@@ -46,6 +47,7 @@ const AppRoutes = () => {
         <Route path="/vehicle/:id" element={<VehicleDetail />} />
         <Route path="/car/:id" element={<VehicleDetail />} />
         <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dealer'} /> : <Login />} />
+        <Route path="/become-a-dealer" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dealer'} /> : <RegisterDealer />} />
         <Route path="/dealer" element={
           <ProtectedRoute allowedRoles={['dealer_owner', 'dealer_staff']}>
             <DealerDashboard />

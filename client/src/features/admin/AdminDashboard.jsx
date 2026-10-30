@@ -7,6 +7,7 @@ const AdminDashboard = () => {
   const [sales, setSales] = useState([]);
   const [payments, setPayments] = useState([]);
   const [dealerPayments, setDealerPayments] = useState([]);
+  const [dealers, setDealersList] = useState([]);
   const [leads, setLeads] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [filterRef, setFilterRef] = useState('');
@@ -21,11 +22,12 @@ const AdminDashboard = () => {
   
   const fetchData = async () => {
     try {
-      const [commRes, salesRes, paymentsRes, dealerPaymentsRes, leadsRes, vehiclesRes] = await Promise.all([
+      const [commRes, salesRes, paymentsRes, dealerPaymentsRes, dealersRes, leadsRes, vehiclesRes] = await Promise.all([
         api.get('/commissions/summary'),
         api.get('/sales'),
         api.get('/commissions/payments'),
         api.get('/payments/all').catch(() => ({ data: [] })),
+        api.get('/auth/dealers').catch(() => ({ data: [] })),
         api.get('/leads'),
         api.get('/vehicles/all').catch(() => api.get('/vehicles'))
       ]);
@@ -33,10 +35,34 @@ const AdminDashboard = () => {
       setSales(salesRes.data);
       setPayments(paymentsRes.data);
       setDealerPayments(dealerPaymentsRes.data);
+      setDealersList(dealersRes.data);
       setLeads(leadsRes.data);
       setVehicles(vehiclesRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+    }
+  };
+
+  const verifyDealer = async (dealerId) => {
+    if (!confirm('Verify this dealer and activate 2-month free trial? Only do this if documents match a legitimate profile.')) return;
+    try {
+      await api.post(`/auth/dealers/${dealerId}/verify`);
+      alert('Dealer verified');
+      fetchData();
+    } catch (error) {
+      alert('Error verifying dealer');
+    }
+  };
+
+  const rejectDealer = async (dealerId) => {
+    const reason = prompt('Reason for rejection (required):');
+    if (!reason) return;
+    try {
+      await api.post(`/auth/dealers/${dealerId}/reject`, { reason });
+      alert('Dealer rejected');
+      fetchData();
+    } catch (error) {
+      alert('Error rejecting dealer');
     }
   };
 
@@ -137,6 +163,7 @@ const AdminDashboard = () => {
       
       <div className="flex flex-wrap gap-2 mb-6">
         <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Overview</button>
+        <button onClick={() => setActiveTab('dealers')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'dealers' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Dealers ({dealersList.filter(d => d.verificationStatus !== 'verified').length})</button>
         <button onClick={() => setActiveTab('dealerPayments')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'dealerPayments' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Dealer Payments ({dealerPayments.filter(p => p.status === 'pending').length})</button>
         <button onClick={() => setActiveTab('sales')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'sales' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Sales & Referrals</button>
         <button onClick={() => setActiveTab('commissions')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'commissions' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Commission by Ref</button>
@@ -164,6 +191,57 @@ const AdminDashboard = () => {
         </div>
       )}
       
+      {activeTab === 'dealers' && (
+        <>
+          <h2 className="text-xl font-bold mb-2">Dealer Verification</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Only approve dealers with a legitimate verification profile. Match owner name to ID, check EcoCash name/sender, and verify documents before approving.
+          </p>
+          <div className="bg-white rounded shadow overflow-hidden">
+            {dealersList.length === 0 ? (
+              <div className="text-center py-12 text-gray-600">No dealers found.</div>
+            ) : (
+              <div className="divide-y">
+                {dealersList.map((dealer) => (
+                  <div key={dealer.id} className="p-4">
+                    <div className="flex flex-wrap justify-between gap-2 mb-2">
+                      <div>
+                        <h3 className="font-semibold">{dealer.name}</h3>
+                        <p className="text-sm text-gray-600">{dealer.ownerFullName || dealer.users?.[0]?.name} • {dealer.phone} • {dealer.businessEmail || dealer.users?.[0]?.email}</p>
+                        <p className="text-sm text-gray-600">ID: {dealer.idNumber || '-'} • EcoCash: {dealer.ecoCashName || '-'} • Location: {dealer.location || '-'}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs ${dealer.verificationStatus === 'verified' ? 'bg-green-100 text-green-800' : dealer.verificationStatus === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{dealer.verificationStatus}</span>
+                        <span className={`px-2 py-1 rounded text-xs ${dealer.status === 'trial' ? 'bg-blue-100 text-blue-800' : dealer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{dealer.status}</span>
+                      </div>
+                    </div>
+                    {dealer.rejectionReason && <p className="text-sm text-red-600 mb-2">Rejected: {dealer.rejectionReason}</p>}
+                    <div className="mb-3">
+                      <p className="text-sm font-semibold mb-1">Documents</p>
+                      {dealer.verifications?.length === 0 ? <p className="text-sm text-gray-500">No documents uploaded.</p> : (
+                        <div className="flex flex-wrap gap-2">
+                          {dealer.verifications?.map((doc) => (
+                            <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noreferrer" className="px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200">
+                              {doc.type.replace('_', ' ')} ({doc.status})
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {dealer.verificationStatus !== 'verified' && dealer.verificationStatus !== 'rejected' && (
+                      <div className="flex gap-2">
+                        <button onClick={() => verifyDealer(dealer.id)} className="bg-green-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Approve & Activate Trial</button>
+                        <button onClick={() => rejectDealer(dealer.id)} className="bg-red-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Reject</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {activeTab === 'dealerPayments' && (
         <>
           <h2 className="text-xl font-bold mb-2">Dealer Subscription & Joining Payments</h2>

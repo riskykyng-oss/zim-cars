@@ -6,6 +6,17 @@ const DealerDashboard = () => {
   const [vehicles, setVehicles] = useState([]);
   const [leads, setLeads] = useState([]);
   const [sales, setSales] = useState([]);
+  const [verification, setVerification] = useState(null);
+  const [verificationDocs, setVerificationDocs] = useState([]);
+  const [docType, setDocType] = useState('national_id');
+  const [docFile, setDocFile] = useState(null);
+  const [docNotes, setDocNotes] = useState('');
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [payments, setPayments] = useState([]);
+  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({ type: 'subscription', amount: '2', method: 'ecocash', reference: '', senderName: '' });
+  const [proofFile, setProofFile] = useState(null);
+  const [submittingPayment, setSubmittingPayment] = useState(false);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [newVehicle, setNewVehicle] = useState({
     make: '', model: '', year: '', price: '', description: ''
@@ -23,16 +34,72 @@ const DealerDashboard = () => {
   
   const fetchData = async () => {
     try {
-      const [vehiclesRes, leadsRes, salesRes] = await Promise.all([
+      const [vehiclesRes, leadsRes, salesRes, verificationRes, paymentsRes, paymentInfoRes] = await Promise.all([
         api.get('/vehicles'),
         api.get('/leads'),
-        api.get('/sales')
+        api.get('/sales'),
+        api.get('/auth/dealer/verify').catch(() => ({ data: { dealer: null, verifications: [] } })),
+        api.get('/payments/my').catch(() => ({ data: [] })),
+        api.get('/payments/info').catch(() => ({ data: null }))
       ]);
       setVehicles(vehiclesRes.data);
       setLeads(leadsRes.data);
       setSales(salesRes.data);
+      setVerification(verificationRes.data.dealer);
+      setVerificationDocs(verificationRes.data.verifications || []);
+      setPayments(paymentsRes.data);
+      setPaymentInfo(paymentInfoRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+    }
+  };
+
+  const handleDocUpload = async (e) => {
+    e.preventDefault();
+    if (!docFile) {
+      alert('Select a document file');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('document', docFile);
+    formData.append('type', docType);
+    formData.append('notes', docNotes);
+    setUploadingDoc(true);
+    try {
+      await api.post('/auth/dealer/verify/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setDocFile(null);
+      setDocNotes('');
+      fetchData();
+      alert('Document uploaded for review');
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      alert('Error uploading document');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('type', paymentForm.type);
+    formData.append('amount', paymentForm.amount);
+    formData.append('method', paymentForm.method);
+    formData.append('reference', paymentForm.reference);
+    formData.append('senderName', paymentForm.senderName);
+    if (proofFile) formData.append('proof', proofFile);
+    setSubmittingPayment(true);
+    try {
+      await api.post('/payments/submit', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setProofFile(null);
+      setPaymentForm({ type: 'subscription', amount: '2', method: 'ecocash', reference: '', senderName: '' });
+      fetchData();
+      alert('Payment submitted. Awaiting admin approval.');
+    } catch (error) {
+      console.error('Error submitting payment:', error);
+      alert(error.response?.data?.error || 'Error submitting payment');
+    } finally {
+      setSubmittingPayment(false);
     }
   };
   
@@ -138,24 +205,58 @@ const DealerDashboard = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Dealer Dashboard</h1>
       
-      <div className="flex space-x-4 mb-6">
+      {verification?.verificationStatus !== 'verified' && (
+        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded mb-6">
+          <h3 className="font-semibold text-yellow-800 mb-1">Account Pending Verification</h3>
+          <p className="text-sm text-yellow-700">
+            You must upload a clear copy of your National ID/Passport and proof of address. Admin approval is required before you can add vehicles. Only legitimate verification profiles are approved.
+          </p>
+        </div>
+      )}
+      {verification?.status === 'pending_payment' && (
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-6">
+          <h3 className="font-semibold text-blue-800 mb-1">Payment Required</h3>
+          <p className="text-sm text-blue-700">
+            Submit your payment proof below. EcoCash: <strong>{paymentInfo?.ecocash || '0773412018'}</strong> • Joining $3 (one-time) • Subscription $2/month
+          </p>
+        </div>
+      )}
+      {verification?.status === 'expired' && (
+        <div className="bg-red-50 border border-red-200 p-4 rounded mb-6">
+          <h3 className="font-semibold text-red-800 mb-1">Subscription Expired</h3>
+          <p className="text-sm text-red-700">Renew your subscription to continue listing vehicles.</p>
+        </div>
+      )}
+      {verification?.status === 'trial' && verification?.trialEndsAt && (
+        <div className="bg-green-50 border border-green-200 p-4 rounded mb-6">
+          <p className="text-sm text-green-700">2-month free trial active until {new Date(verification.trialEndsAt).toLocaleDateString()}.</p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2 mb-6">
         <button
           onClick={() => setActiveTab('vehicles')}
-          className={`px-4 py-2 rounded ${activeTab === 'vehicles' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'vehicles' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
         >
           Vehicles ({vehicles.length})
         </button>
         <button
           onClick={() => setActiveTab('leads')}
-          className={`px-4 py-2 rounded ${activeTab === 'leads' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'leads' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
         >
           Leads ({leads.length})
         </button>
         <button
           onClick={() => setActiveTab('sales')}
-          className={`px-4 py-2 rounded ${activeTab === 'sales' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'sales' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
         >
           Sales ({sales.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('verification')}
+          className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'verification' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Verification & Payments
         </button>
       </div>
       
@@ -577,6 +678,82 @@ const DealerDashboard = () => {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {activeTab === 'verification' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded shadow p-6">
+            <h2 className="text-xl font-bold mb-2">Verification Status</h2>
+            <p className="mb-4">
+              Status: <span className="font-semibold capitalize">{verification?.verificationStatus || 'pending'}</span> {verification?.rejectionReason && <span className="text-red-600">• {verification.rejectionReason}</span>}
+            </p>
+            <p className="text-sm text-gray-600 mb-4">Upload clear, readable copies. We only approve dealers with a legitimate verification profile.</p>
+            <form onSubmit={handleDocUpload} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <select value={docType} onChange={(e) => setDocType(e.target.value)} className="p-2 border rounded min-h-[44px]">
+                <option value="national_id">National ID</option>
+                <option value="passport">Passport</option>
+                <option value="proof_of_address">Proof of Address (utility bill)</option>
+                <option value="business_registration">Business Registration</option>
+                <option value="other">Other</option>
+              </select>
+              <input type="file" accept="image/*,.pdf" onChange={(e) => setDocFile(e.target.files[0])} className="p-2 border rounded min-h-[44px]" />
+              <input type="text" placeholder="Notes (optional)" value={docNotes} onChange={(e) => setDocNotes(e.target.value)} className="p-2 border rounded md:col-span-2 min-h-[44px]" />
+              <button type="submit" disabled={uploadingDoc} className="bg-blue-600 text-white px-4 py-2 rounded min-h-[44px] md:col-span-2 disabled:opacity-50">{uploadingDoc ? 'Uploading...' : 'Upload Document'}</button>
+            </form>
+            {verificationDocs.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Uploaded Documents</h3>
+                <ul className="space-y-2">
+                  {verificationDocs.map((doc) => (
+                    <li key={doc.id} className="flex items-center justify-between border p-3 rounded">
+                      <div>
+                        <p className="capitalize">{doc.type.replace('_', ' ')}</p>
+                        <p className="text-xs text-gray-500">{new Date(doc.createdAt).toLocaleString()}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">View</a>
+                        <span className={`px-2 py-1 rounded text-xs ${doc.status === 'approved' ? 'bg-green-100 text-green-800' : doc.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{doc.status}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded shadow p-6">
+            <h2 className="text-xl font-bold mb-2">Payments</h2>
+            <p className="text-sm text-gray-600 mb-4">EcoCash: <strong>{paymentInfo?.ecocash || '0773412018'}</strong> • Pricing: Joining $3, Subscription $2/month, Commission 3%</p>
+            <form onSubmit={handlePaymentSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <select value={paymentForm.type} onChange={(e) => setPaymentForm({...paymentForm, type: e.target.value})} className="p-2 border rounded min-h-[44px]">
+                <option value="subscription">Subscription ($2)</option>
+                <option value="joining">Joining Fee ($3)</option>
+              </select>
+              <input type="number" value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})} className="p-2 border rounded min-h-[44px]" />
+              <select value={paymentForm.method} onChange={(e) => setPaymentForm({...paymentForm, method: e.target.value})} className="p-2 border rounded min-h-[44px]">
+                <option value="ecocash">EcoCash</option>
+                <option value="innbucks">InnBucks</option>
+                <option value="onemoney">OneMoney</option>
+              </select>
+              <input type="text" placeholder="Transaction Reference" value={paymentForm.reference} onChange={(e) => setPaymentForm({...paymentForm, reference: e.target.value})} className="p-2 border rounded min-h-[44px]" />
+              <input type="text" placeholder="Sender Name (must match EcoCash)" value={paymentForm.senderName} onChange={(e) => setPaymentForm({...paymentForm, senderName: e.target.value})} className="p-2 border rounded md:col-span-2 min-h-[44px]" />
+              <input type="file" accept="image/*" onChange={(e) => setProofFile(e.target.files[0])} className="p-2 border rounded md:col-span-2 min-h-[44px]" />
+              <button type="submit" disabled={submittingPayment} className="bg-green-600 text-white px-4 py-2 rounded min-h-[44px] md:col-span-2 disabled:opacity-50">{submittingPayment ? 'Submitting...' : 'Submit Payment Proof'}</button>
+            </form>
+            <h3 className="font-semibold mb-2">Payment History</h3>
+            <div className="divide-y">
+              {payments.length === 0 ? <p className="text-sm text-gray-500">No payments yet.</p> : payments.map((p) => (
+                <div key={p.id} className="py-3 flex justify-between">
+                  <div>
+                    <p className="capitalize">{p.type} • ${p.amount} • {p.method}</p>
+                    <p className="text-xs text-gray-500">{p.reference || 'No ref'} {p.senderName && `• ${p.senderName}`}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded text-xs self-start ${p.status === 'approved' ? 'bg-green-100 text-green-800' : p.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{p.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

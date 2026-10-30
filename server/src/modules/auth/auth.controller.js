@@ -271,11 +271,99 @@ export const getDealerVerification = async (req, res) => {
         status: dealer?.status,
         verificationStatus: dealer?.verificationStatus,
         rejectionReason: dealer?.rejectionReason,
+        trialEndsAt: dealer?.trialEndsAt,
+        subscriptionEndsAt: dealer?.subscriptionEndsAt,
       },
       verifications: dealer?.verifications || [],
     });
   } catch (error) {
     console.error('Get verification error:', error);
     return res.status(500).json({ error: 'Failed to get verification status' });
+  }
+};
+
+export const getAllDealers = async (req, res) => {
+  try {
+    const dealers = await prisma.dealer.findMany({
+      include: {
+        users: true,
+        verifications: { orderBy: { createdAt: 'desc' } },
+        payments: { orderBy: { createdAt: 'desc' }, take: 10 },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return res.json(dealers);
+  } catch (error) {
+    console.error('Get all dealers error:', error);
+    return res.status(500).json({ error: 'Failed to fetch dealers' });
+  }
+};
+
+export const verifyDealer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const dealer = await prisma.dealer.findUnique({ where: { id } });
+    if (!dealer) {
+      return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    const trialEndsAt = dealer.trialEndsAt || (() => {
+      const d = new Date();
+      d.setMonth(d.getMonth() + 2);
+      return d;
+    })();
+
+    await prisma.dealer.update({
+      where: { id },
+      data: {
+        verificationStatus: 'verified',
+        verifiedAt: new Date(),
+        verifiedBy: req.session.userId,
+        status: 'trial',
+        plan: 'trial',
+        trialEndsAt,
+        rejectionReason: null,
+      },
+    });
+
+    await prisma.dealerVerification.updateMany({
+      where: { dealerId: id, status: 'pending' },
+      data: { status: 'approved', reviewedBy: req.session.userId, reviewedAt: new Date() },
+    });
+
+    return res.json({ message: 'Dealer verified. 2-month trial activated.' });
+  } catch (error) {
+    console.error('Verify dealer error:', error);
+    return res.status(500).json({ error: 'Failed to verify dealer' });
+  }
+};
+
+export const rejectDealer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    if (!reason || !String(reason).trim()) {
+      return res.status(400).json({ error: 'Rejection reason required' });
+    }
+
+    await prisma.dealer.update({
+      where: { id },
+      data: {
+        verificationStatus: 'rejected',
+        status: 'rejected',
+        rejectionReason: String(reason).trim(),
+        verifiedBy: req.session.userId,
+      },
+    });
+
+    await prisma.dealerVerification.updateMany({
+      where: { dealerId: id, status: 'pending' },
+      data: { status: 'rejected', reviewedBy: req.session.userId, reviewedAt: new Date() },
+    });
+
+    return res.json({ message: 'Dealer rejected' });
+  } catch (error) {
+    console.error('Reject dealer error:', error);
+    return res.status(500).json({ error: 'Failed to reject dealer' });
   }
 };
