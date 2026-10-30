@@ -148,7 +148,7 @@ const AdminDashboard = () => {
     a.click();
   };
   
-  const dealers = [...new Set(sales.map(s => s.lead?.dealer?.name).filter(Boolean))];
+  const dealerNames = [...new Set(sales.map(s => s.lead?.dealer?.name).filter(Boolean))];
   
   const filteredSales = sales.filter(s => {
     if (filterRef && !(s.refCode || s.lead?.referralCode || '').toLowerCase().includes(filterRef.toLowerCase())) return false;
@@ -349,7 +349,7 @@ const AdminDashboard = () => {
             </select>
             <select value={filterDealer} onChange={(e) => setFilterDealer(e.target.value)} className="px-3 py-2 border rounded min-h-[44px]">
               <option value="">All Dealers</option>
-              {dealers.map(d => <option key={d} value={d}>{d}</option>)}
+              {dealerNames.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
             <button onClick={exportCSV} className="bg-green-600 text-white px-4 py-2 rounded min-h-[44px]">Export CSV</button>
           </div>
