@@ -227,11 +227,37 @@ const DealerDashboard = () => {
           <p className="text-sm text-red-700">Renew your subscription to continue listing vehicles.</p>
         </div>
       )}
-      {verification?.status === 'trial' && verification?.trialEndsAt && (
-        <div className="bg-green-50 border border-green-200 p-4 rounded mb-6">
-          <p className="text-sm text-green-700">2-month free trial active until {new Date(verification.trialEndsAt).toLocaleDateString()}.</p>
-        </div>
-      )}
+      {verification?.status === 'trial' && verification?.trialEndsAt && (() => {
+        const daysLeft = Math.ceil((new Date(verification.trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24));
+        if (daysLeft <= 7 && daysLeft > 0) {
+          return (
+            <div className="bg-orange-50 border border-orange-200 p-4 rounded mb-6">
+              <h3 className="font-semibold text-orange-800 mb-1">Trial Expiring Soon</h3>
+              <p className="text-sm text-orange-700">Your free trial expires in {daysLeft} day{daysLeft === 1 ? '' : 's'} ({new Date(verification.trialEndsAt).toLocaleDateString()}). Subscribe to continue listing after expiry.</p>
+            </div>
+          );
+        }
+        if (daysLeft > 7) {
+          return (
+            <div className="bg-green-50 border border-green-200 p-4 rounded mb-6">
+              <p className="text-sm text-green-700">2-month free trial active until {new Date(verification.trialEndsAt).toLocaleDateString()}.</p>
+            </div>
+          );
+        }
+        return null;
+      })()}
+      {verification?.status === 'active' && verification?.subscriptionEndsAt && (() => {
+        const daysLeft = Math.ceil((new Date(verification.subscriptionEndsAt) - new Date()) / (1000 * 60 * 60 * 24));
+        if (daysLeft <= 7 && daysLeft > 0) {
+          return (
+            <div className="bg-orange-50 border border-orange-200 p-4 rounded mb-6">
+              <h3 className="font-semibold text-orange-800 mb-1">Subscription Expiring Soon</h3>
+              <p className="text-sm text-orange-700">Your subscription expires in {daysLeft} day{daysLeft === 1 ? '' : 's'} ({new Date(verification.subscriptionEndsAt).toLocaleDateString()}). Renew to avoid interruption.</p>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       <div className="flex flex-wrap gap-2 mb-6">
         <button
