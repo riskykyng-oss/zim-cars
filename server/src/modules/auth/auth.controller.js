@@ -302,9 +302,21 @@ export const getAllDealers = async (req, res) => {
 export const verifyDealer = async (req, res) => {
   try {
     const { id } = req.params;
-    const dealer = await prisma.dealer.findUnique({ where: { id } });
+    const dealer = await prisma.dealer.findUnique({ 
+      where: { id },
+      include: { verifications: true },
+    });
     if (!dealer) {
       return res.status(404).json({ error: 'Dealer not found' });
+    }
+
+    const hasId = dealer.verifications.some(v => (v.type === 'national_id' || v.type === 'passport') && v.status !== 'rejected');
+    const hasProof = dealer.verifications.some(v => v.type === 'proof_of_address' && v.status !== 'rejected');
+    
+    if (!hasId || !hasProof) {
+      return res.status(400).json({ 
+        error: 'Cannot approve: National ID/Passport and Proof of Address are required for a legitimate verification profile.' 
+      });
     }
 
     const trialEndsAt = dealer.trialEndsAt || (() => {

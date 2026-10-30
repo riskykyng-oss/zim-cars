@@ -50,7 +50,7 @@ const AdminDashboard = () => {
       alert('Dealer verified');
       fetchData();
     } catch (error) {
-      alert('Error verifying dealer');
+      alert(error.response?.data?.error || 'Error verifying dealer');
     }
   };
 
