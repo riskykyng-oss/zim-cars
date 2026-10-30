@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '../../config/database.js';
+import { postToGoogleSheet } from '../../utils/googleSheets.js';
 
 const LEAD_STATUSES = ['new', 'contacted', 'sold', 'lost'];
 const LEAD_SOURCES = ['web', 'whatsapp', 'phone', 'walkin', 'qr'];
@@ -126,6 +127,22 @@ export const createLead = async (req, res) => {
       return created;
     });
 
+    postToGoogleSheet({
+      sheet: 'Leads',
+      leadId: leadIdShort,
+      buyerName: lead.buyerName || '',
+      buyerPhone: lead.buyerPhone || '',
+      vehicleId: lead.vehicleId || '',
+      vehicle: lead.vehicle ? `${lead.vehicle.year} ${lead.vehicle.make} ${lead.vehicle.model}` : '',
+      price: lead.vehicle?.price || '',
+      dealer: lead.dealer?.name || '',
+      status: lead.status || 'new',
+      source: lead.source || 'web',
+      referralCode: lead.referralCode || '',
+      pageUrl: lead.pageUrl || '',
+      userAgent: req.headers['user-agent'] || '',
+    });
+
     return res.status(201).json({ ...lead, leadId: leadIdShort });
   } catch (error) {
     console.error('Create lead error:', error);
@@ -211,6 +228,22 @@ export const updateLead = async (req, res) => {
 
       return updated;
     });
+
+    if (status === 'sold') {
+      postToGoogleSheet({
+        sheet: 'Sales',
+        leadId: updatedLead.leadId || '',
+        buyerName: updatedLead.buyerName || '',
+        buyerPhone: updatedLead.buyerPhone || '',
+        vehicleId: updatedLead.vehicleId || '',
+        vehicle: updatedLead.vehicle ? `${updatedLead.vehicle.year} ${updatedLead.vehicle.make} ${updatedLead.vehicle.model}` : '',
+        price: updatedLead.sale?.price || updatedLead.vehicle?.price || '',
+        dealer: updatedLead.dealer?.name || '',
+        soldBy: req.session.email || '',
+        referralCode: updatedLead.referralCode || '',
+        source: updatedLead.source || 'web',
+      });
+    }
 
     return res.json(updatedLead);
   } catch (error) {
