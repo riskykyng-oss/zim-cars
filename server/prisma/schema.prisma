@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
@@ -13,84 +10,81 @@ datasource db {
 }
 
 model Dealer {
-  id                  String    @id @default(uuid())
-  name                String    @db.VarChar(150)
-  slug                String    @unique @db.VarChar(100)
-  phone               String?   @db.VarChar(20)
-  location            String?   @db.VarChar(100)
-  ownerFullName       String?   @map("owner_full_name") @db.VarChar(150)
-  businessEmail       String?   @map("business_email") @db.VarChar(255)
-  ecoCashName         String?   @map("ecocash_name") @db.VarChar(150)
-  idNumber            String?   @map("id_number") @db.VarChar(50)
-  commissionRate      Float     @default(3.00) @map("commission_rate")
-  status              String    @default("pending_verification") @db.VarChar(30) // pending_verification | verified | pending_payment | trial | active | expired | suspended | rejected
-  verificationStatus  String    @default("pending") @db.VarChar(20) // pending | in_review | verified | rejected
-  plan                String    @default("trial") @db.VarChar(20) // trial | starter
-  trialEndsAt         DateTime? @map("trial_ends_at")
-  subscriptionEndsAt  DateTime? @map("subscription_ends_at")
-  lastPaymentAt       DateTime? @map("last_payment_at")
-  onboardingPaid      Boolean   @default(false) @map("onboarding_paid")
-  subscriptionPaid    Boolean   @default(false) @map("subscription_paid")
-  joinedAt            DateTime  @default(now()) @map("joined_at")
-  verifiedAt          DateTime? @map("verified_at")
-  verifiedBy          String?   @map("verified_by")
-  rejectionReason     String?   @map("rejection_reason") @db.Text
-  approvedAt          DateTime? @map("approved_at")
-  approvedBy          String?   @map("approved_by")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  
-  users               User[]
-  vehicles            Vehicle[]
-  leads               Lead[]
-  auditLogs           AuditLog[]
-  payments            Payment[]
-  verifications       DealerVerification[]
-  
+  id                 String               @id @default(uuid())
+  name               String               @db.VarChar(150)
+  slug               String               @unique @db.VarChar(100)
+  commissionRate     Float                @default(3.00) @map("commission_rate")
+  status             String               @default("pending_verification") @db.VarChar(30)
+  createdAt          DateTime             @default(now()) @map("created_at")
+  phone              String?              @db.VarChar(20)
+  location           String?              @db.VarChar(100)
+  plan               String               @default("trial") @db.VarChar(20)
+  trialEndsAt        DateTime?            @map("trial_ends_at")
+  subscriptionEndsAt DateTime?            @map("subscription_ends_at")
+  lastPaymentAt      DateTime?            @map("last_payment_at")
+  onboardingPaid     Boolean              @default(false) @map("onboarding_paid")
+  subscriptionPaid   Boolean              @default(false) @map("subscription_paid")
+  joinedAt           DateTime             @default(now()) @map("joined_at")
+  approvedAt         DateTime?            @map("approved_at")
+  approvedBy         String?              @map("approved_by")
+  ownerFullName      String?              @map("owner_full_name") @db.VarChar(150)
+  businessEmail      String?              @map("business_email") @db.VarChar(255)
+  ecoCashName        String?              @map("ecocash_name") @db.VarChar(150)
+  idNumber           String?              @map("id_number") @db.VarChar(50)
+  verifiedAt         DateTime?            @map("verified_at")
+  verifiedBy         String?              @map("verified_by")
+  rejectionReason    String?              @map("rejection_reason")
+  verificationStatus String               @default("pending") @map("verification_status") @db.VarChar(20)
+  auditLogs          AuditLog[]
+  verifications      DealerVerification[]
+  leads              Lead[]
+  payments           Payment[]
+  users              User[]
+  vehicles           Vehicle[]
+
   @@map("dealers")
 }
 
 model User {
-  id           String   @id @default(uuid())
-  dealerId     String?  @map("dealer_id")
-  name         String   @db.VarChar(150)
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash")
-  role         String   @db.VarChar(30) // admin, dealer_owner, dealer_staff
-  createdAt    DateTime @default(now()) @map("created_at")
-  
-  dealer       Dealer?  @relation(fields: [dealerId], references: [id])
-  salesConfirmed Sales[] @relation("SalesConfirmedBy")
+  id               String              @id @default(uuid())
+  dealerId         String?             @map("dealer_id")
+  name             String              @db.VarChar(150)
+  email            String              @unique @db.VarChar(255)
+  passwordHash     String              @map("password_hash")
+  role             String              @db.VarChar(30)
+  createdAt        DateTime            @default(now()) @map("created_at")
+  auditLogs        AuditLog[]
   paymentsRecorded CommissionPayment[] @relation("PaymentsRecordedBy")
-  auditLogs    AuditLog[]
-  
+  salesConfirmed   Sales[]             @relation("SalesConfirmedBy")
+  dealer           Dealer?             @relation(fields: [dealerId], references: [id])
+
   @@index([dealerId])
   @@map("users")
 }
 
 model Vehicle {
-  id           String   @id @default(uuid())
-  dealerId     String   @map("dealer_id")
-  make         String   @db.VarChar(80)
-  model        String   @db.VarChar(100)
+  id           String         @id @default(uuid())
+  dealerId     String         @map("dealer_id")
+  make         String         @db.VarChar(80)
+  model        String         @db.VarChar(100)
   year         Int?
   price        Float
-  currency     String   @default("USD") @db.VarChar(3)
-  description  String?  @db.Text
-  status       String   @default("available") @db.VarChar(20)
-  slug         String?  @unique @db.VarChar(120)
+  currency     String         @default("USD") @db.VarChar(3)
+  description  String?
+  status       String         @default("available") @db.VarChar(20)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  dutyPaid     Boolean?       @default(false) @map("duty_paid")
+  fuelType     String?        @map("fuel_type") @db.VarChar(20)
+  location     String?        @db.VarChar(80)
   mileage      Int?
-  transmission String? @db.VarChar(20)
-  fuelType     String?  @map("fuel_type") @db.VarChar(20)
-  dutyPaid     Boolean? @default(false) @map("duty_paid")
-  location     String?  @db.VarChar(80)
-  videoUrl     String?  @map("video_url")
-  createdAt    DateTime @default(now()) @map("created_at")
-  
-  dealer       Dealer   @relation(fields: [dealerId], references: [id])
+  slug         String?        @unique @db.VarChar(120)
+  transmission String?        @db.VarChar(20)
+  videoUrl     String?        @map("video_url")
   leads        Lead[]
   sales        Sales[]
   images       VehicleImage[]
-  
+  dealer       Dealer         @relation(fields: [dealerId], references: [id])
+
   @@index([dealerId])
   @@index([status])
   @@index([createdAt])
@@ -104,34 +98,32 @@ model VehicleImage {
   url       String
   isPrimary Boolean  @default(false) @map("is_primary")
   createdAt DateTime @default(now()) @map("created_at")
-  
   vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  
+
   @@index([vehicleId])
   @@map("vehicle_images")
 }
 
 model Lead {
-  id           String    @id @default(uuid())
-  dealerId     String    @map("dealer_id")
-  vehicleId    String?   @map("vehicle_id")
-  buyerName    String?   @map("buyer_name") @db.VarChar(150)
-  buyerPhone   String    @map("buyer_phone") @db.VarChar(30)
-  source       String    @db.VarChar(50) // whatsapp, phone, walkin, qr, web
-  referralCode String?   @map("referral_code") @db.VarChar(80)
-  leadId       String?   @unique @map("lead_id_short") @db.VarChar(20)
-  status       String    @default("new") @db.VarChar(30) // new, contacted, sold, lost
+  id           String      @id @default(uuid())
+  dealerId     String      @map("dealer_id")
+  vehicleId    String?     @map("vehicle_id")
+  buyerName    String?     @map("buyer_name") @db.VarChar(150)
+  buyerPhone   String      @map("buyer_phone") @db.VarChar(30)
+  source       String      @db.VarChar(50)
+  referralCode String?     @map("referral_code") @db.VarChar(80)
+  status       String      @default("new") @db.VarChar(30)
+  consentAt    DateTime?   @map("consent_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
   ip           String?
-  userAgent    String?   @map("user_agent") @db.Text
-  pageUrl      String?   @map("page_url") @db.Text
-  consentAt    DateTime? @map("consent_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  
-  dealer       Dealer    @relation(fields: [dealerId], references: [id])
-  vehicle      Vehicle?  @relation(fields: [vehicleId], references: [id])
-  sale         Sales?
+  leadId       String?     @unique @map("lead_id_short") @db.VarChar(20)
+  pageUrl      String?     @map("page_url")
+  userAgent    String?     @map("user_agent")
   events       LeadEvent[]
-  
+  dealer       Dealer      @relation(fields: [dealerId], references: [id])
+  vehicle      Vehicle?    @relation(fields: [vehicleId], references: [id])
+  sale         Sales?
+
   @@index([dealerId])
   @@index([vehicleId])
   @@index([status])
@@ -146,37 +138,35 @@ model LeadEvent {
   id        String   @id @default(uuid())
   leadId    String   @map("lead_id")
   event     String   @db.VarChar(50)
-  oldValue  String?  @map("old_value") @db.Text
-  newValue  String?  @map("new_value") @db.Text
+  oldValue  String?  @map("old_value")
+  newValue  String?  @map("new_value")
   actor     String?  @db.VarChar(100)
   createdAt DateTime @default(now()) @map("created_at")
-  
   lead      Lead     @relation(fields: [leadId], references: [id])
-  
+
   @@index([leadId])
   @@index([createdAt])
   @@map("lead_events")
 }
 
 model Sales {
-  id               String    @id @default(uuid())
-  leadId           String    @unique @map("lead_id")
-  vehicleId        String    @map("vehicle_id")
-  refCode          String?   @map("ref_code") @db.VarChar(80)
-  salePrice        Float     @map("sale_price")
-  commissionRate   Float     @map("commission_rate")
-  commissionAmount Float     @map("commission_amount")
-  status           String    @default("pending") @db.VarChar(20) // pending, confirmed, completed
-  soldAt           DateTime  @default(now()) @map("sold_at")
-  markedBy         String?   @map("marked_by")
-  confirmedById    String?   @map("confirmed_by")
-  confirmedAt      DateTime? @map("confirmed_at")
-  
-  lead             Lead      @relation(fields: [leadId], references: [id])
-  vehicle          Vehicle   @relation(fields: [vehicleId], references: [id])
-  confirmedBy      User?     @relation("SalesConfirmedBy", fields: [confirmedById], references: [id])
+  id               String              @id @default(uuid())
+  leadId           String              @unique @map("lead_id")
+  vehicleId        String              @map("vehicle_id")
+  salePrice        Float               @map("sale_price")
+  commissionRate   Float               @map("commission_rate")
+  commissionAmount Float               @map("commission_amount")
+  status           String              @default("pending") @db.VarChar(20)
+  soldAt           DateTime            @default(now()) @map("sold_at")
+  confirmedById    String?             @map("confirmed_by")
+  confirmedAt      DateTime?           @map("confirmed_at")
+  markedBy         String?             @map("marked_by")
+  refCode          String?             @map("ref_code") @db.VarChar(80)
   payments         CommissionPayment[]
-  
+  confirmedBy      User?               @relation("SalesConfirmedBy", fields: [confirmedById], references: [id])
+  lead             Lead                @relation(fields: [leadId], references: [id])
+  vehicle          Vehicle             @relation(fields: [vehicleId], references: [id])
+
   @@index([vehicleId])
   @@index([status])
   @@index([soldAt])
@@ -185,16 +175,15 @@ model Sales {
 }
 
 model CommissionPayment {
-  id                String   @id @default(uuid())
-  saleId            String   @map("sale_id")
-  amount            Float
-  paymentReference  String?  @map("payment_reference") @db.VarChar(150)
-  paidAt            DateTime @default(now()) @map("paid_at")
-  recordedById      String   @map("recorded_by")
-  
-  sale              Sales    @relation(fields: [saleId], references: [id])
-  recordedBy        User     @relation("PaymentsRecordedBy", fields: [recordedById], references: [id])
-  
+  id               String   @id @default(uuid())
+  saleId           String   @map("sale_id")
+  amount           Float
+  paymentReference String?  @map("payment_reference") @db.VarChar(150)
+  paidAt           DateTime @default(now()) @map("paid_at")
+  recordedById     String   @map("recorded_by")
+  recordedBy       User     @relation("PaymentsRecordedBy", fields: [recordedById], references: [id])
+  sale             Sales    @relation(fields: [saleId], references: [id])
+
   @@index([saleId])
   @@index([paidAt])
   @@index([recordedById])
@@ -202,23 +191,22 @@ model CommissionPayment {
 }
 
 model Payment {
-  id          String   @id @default(uuid())
-  dealerId    String   @map("dealer_id")
-  type        String   @db.VarChar(30) // joining | subscription | commission
-  amount      Float
-  currency    String   @default("USD") @db.VarChar(3)
-  method      String   @db.VarChar(30) // ecocash | innbucks | onemoney | bank_transfer
-  reference   String?  @db.VarChar(150)
-  senderName  String?  @map("sender_name") @db.VarChar(150)
-  proofUrl    String?  @map("proof_url")
-  status      String   @default("pending") @db.VarChar(20) // pending | approved | rejected
-  notes       String?  @db.Text
-  approvedBy  String?  @map("approved_by")
-  approvedAt  DateTime? @map("approved_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  
-  dealer      Dealer   @relation(fields: [dealerId], references: [id])
-  
+  id         String    @id @default(uuid())
+  dealerId   String    @map("dealer_id")
+  type       String    @db.VarChar(30)
+  amount     Float
+  currency   String    @default("USD") @db.VarChar(3)
+  method     String    @db.VarChar(30)
+  reference  String?   @db.VarChar(150)
+  proofUrl   String?   @map("proof_url")
+  status     String    @default("pending") @db.VarChar(20)
+  notes      String?
+  approvedBy String?   @map("approved_by")
+  approvedAt DateTime? @map("approved_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  senderName String?   @map("sender_name") @db.VarChar(150)
+  dealer     Dealer    @relation(fields: [dealerId], references: [id])
+
   @@index([dealerId])
   @@index([status])
   @@index([createdAt])
@@ -226,18 +214,17 @@ model Payment {
 }
 
 model DealerVerification {
-  id          String   @id @default(uuid())
-  dealerId    String   @map("dealer_id")
-  type        String   @db.VarChar(30) // national_id | passport | proof_of_address | business_registration | other
-  fileUrl     String   @map("file_url")
-  notes       String?  @db.Text
-  status      String   @default("pending") @db.VarChar(20) // pending | approved | rejected
-  reviewedBy  String?  @map("reviewed_by")
-  reviewedAt  DateTime? @map("reviewed_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  
-  dealer      Dealer   @relation(fields: [dealerId], references: [id])
-  
+  id         String    @id @default(uuid())
+  dealerId   String    @map("dealer_id")
+  type       String    @db.VarChar(30)
+  fileUrl    String    @map("file_url")
+  notes      String?
+  status     String    @default("pending") @db.VarChar(20)
+  reviewedBy String?   @map("reviewed_by")
+  reviewedAt DateTime? @map("reviewed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  dealer     Dealer    @relation(fields: [dealerId], references: [id])
+
   @@index([dealerId])
   @@index([status])
   @@map("dealer_verifications")
@@ -252,10 +239,9 @@ model AuditLog {
   action     String   @db.VarChar(50)
   details    Json     @default("{}")
   createdAt  DateTime @default(now()) @map("created_at")
-  
   actor      User?    @relation(fields: [actorId], references: [id])
   dealer     Dealer?  @relation(fields: [dealerId], references: [id])
-  
+
   @@index([actorId])
   @@index([dealerId])
   @@index([entityType, entityId])
