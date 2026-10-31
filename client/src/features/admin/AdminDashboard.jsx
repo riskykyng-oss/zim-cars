@@ -7,7 +7,7 @@ const AdminDashboard = () => {
   const [sales, setSales] = useState([]);
   const [payments, setPayments] = useState([]);
   const [dealerPayments, setDealerPayments] = useState([]);
-  const [dealers, setDealersList] = useState([]);
+  const [dealersList, setDealersList] = useState([]);
   const [leads, setLeads] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [filterRef, setFilterRef] = useState('');
