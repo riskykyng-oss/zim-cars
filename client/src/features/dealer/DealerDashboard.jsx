@@ -160,22 +160,33 @@ const DealerDashboard = () => {
   };
   
   const handleImageUpload = async (e, vehicleId) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     
     const formData = new FormData();
-    formData.append('image', file);
+    if (files.length === 1) {
+      formData.append('image', files[0]);
+    } else {
+      files.forEach((file) => formData.append('images', file));
+    }
     
     setUploading(true);
     try {
-      await api.post(`/vehicles/${vehicleId}/images`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      if (files.length === 1) {
+        await api.post(`/vehicles/${vehicleId}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        await api.post(`/vehicles/${vehicleId}/images`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
       fetchData();
-      setSelectedVehicle(null);
+      e.target.value = '';
+      alert('Images uploaded successfully');
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Error uploading image');
+      alert('Error uploading images');
     } finally {
       setUploading(false);
     }
@@ -479,21 +490,23 @@ const DealerDashboard = () => {
           
           {selectedVehicle && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg w-96">
-                <h3 className="text-lg font-bold mb-4">Upload Image for {selectedVehicle.make} {selectedVehicle.model}</h3>
+              <div className="bg-white p-6 rounded-lg w-full max-w-md mx-4">
+                <h3 className="text-lg font-bold mb-2">Upload Images for {selectedVehicle.make} {selectedVehicle.model}</h3>
+                <p className="text-sm text-gray-600 mb-3">Upload at least 4 photos (Exterior, Interior, Engine & Other). You can select multiple images at once.</p>
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={(e) => handleImageUpload(e, selectedVehicle.id)}
                   disabled={uploading}
-                  className="mb-4"
+                  className="mb-4 w-full"
                 />
                 {uploading && <p className="text-blue-600 mb-2">Uploading...</p>}
                 <button
                   onClick={() => setSelectedVehicle(null)}
                   className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                 >
-                  Cancel
+                  Close
                 </button>
               </div>
             </div>

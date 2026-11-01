@@ -15,7 +15,8 @@ router.get('/', requireAuth, getAllVehicles);
 router.get('/:id', getVehicleById); // Public can view if available, checked in controller
 router.post('/', requireAuth, requireRole(['admin', 'dealer_owner']), requireDealerActive, createVehicle);
 router.put('/:id', requireAuth, requireRole(['admin', 'dealer_owner']), requireDealerActive, updateVehicle);
-router.post('/:id/images', requireAuth, requireRole(['admin', 'dealer_owner', 'dealer_staff']), requireDealerActive, upload.single('image'), uploadVehicleImage);
+router.post('/:id/images', requireAuth, requireRole(['admin', 'dealer_owner', 'dealer_staff']), requireDealerActive, upload.array('images', 10), uploadVehicleImages);
+router.post('/:id/image', requireAuth, requireRole(['admin', 'dealer_owner', 'dealer_staff']), requireDealerActive, upload.single('image'), uploadVehicleImage);
 router.delete('/images/:imageId', requireAuth, requireRole(['admin', 'dealer_owner', 'dealer_staff']), deleteVehicleImage);
 
 export default router;
