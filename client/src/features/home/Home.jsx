@@ -179,7 +179,7 @@ const Home = () => {
           ) : featured.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {featured.map((vehicle) => (
-                <div key={vehicle.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow border border-gray-100">
+                <Link key={vehicle.id} to={`/dealers/${vehicle.dealer?.slug}`} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow border border-gray-100 block">
                   <div className="h-48 bg-gray-200">
                     {getPrimaryImage(vehicle) ? (
                       <img src={getPrimaryImage(vehicle)} alt={`${vehicle.make} ${vehicle.model}`} className="w-full h-full object-cover" />
@@ -192,15 +192,12 @@ const Home = () => {
                       {vehicle.year} {vehicle.make} {vehicle.model}
                     </h3>
                     <p className="text-2xl font-bold text-blue-600 mb-3">${vehicle.price.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500 mb-4">Dealer: {vehicle.dealer.name}</p>
-                    <Link
-                      to={`/vehicle/${vehicle.id}`}
-                      className="block w-full bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      View Details
-                    </Link>
+                    <p className="text-sm text-gray-500 mb-4">Dealer: {vehicle.dealer?.name}</p>
+                    <div className="block w-full bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                      View Dealer's Cars
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
