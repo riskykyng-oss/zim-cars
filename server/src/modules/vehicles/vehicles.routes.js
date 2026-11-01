@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAllVehicles, getPublicVehicles, getVehicleById, createVehicle, updateVehicle } from './vehicles.controller.js';
-import { uploadVehicleImage, deleteVehicleImage } from './vehicles.images.controller.js';
+import { uploadVehicleImage, uploadVehicleImages, deleteVehicleImage } from './vehicles.images.controller.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { requireDealerActive } from '../../middleware/requireDealerActive.js';
 import { upload } from '../../middleware/upload.js';
