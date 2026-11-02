@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import prisma from '../../config/database.js';
 import { postToGoogleSheet } from '../../utils/googleSheets.js';
 
-const LEAD_STATUSES = ['new', 'contacted', 'sold', 'lost'];
-const LEAD_SOURCES = ['web', 'whatsapp', 'phone', 'walkin', 'qr'];
+const LEAD_STATUSES = ['new', 'contacted', 'viewing_arranged', 'viewing_completed', 'negotiation', 'sold', 'lost', 'duplicate', 'invalid', 'disputed', 'unreachable'];
+const LEAD_SOURCES = ['web', 'whatsapp', 'phone', 'walkin', 'qr', 'facebook', 'tiktok', 'whatsapp_status', 'dealer_portfolio', 'referral'];
 const REFERRAL_PATTERN = /^[A-Za-z0-9_-]{2,30}$/;
 
 const generateLeadId = () => `L-${uuidv4().substring(0, 6).toUpperCase()}`;
@@ -168,6 +168,16 @@ export const getLeads = async (req, res) => {
         vehicle: true,
         dealer: true,
         sale: true,
+        events: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+        appointments: {
+          orderBy: { scheduledAt: 'desc' },
+        },
+        assignedTo: {
+          select: { id: true, name: true, email: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -182,7 +192,7 @@ export const getLeads = async (req, res) => {
 export const updateLead = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, notes } = req.body;
 
     if (!LEAD_STATUSES.includes(status)) {
       return res.status(400).json({ error: 'Invalid lead status.' });
@@ -201,8 +211,8 @@ export const updateLead = async (req, res) => {
     const updatedLead = await prisma.$transaction(async (tx) => {
       const updated = await tx.lead.update({
         where: { id },
-        data: { status },
-        include: { vehicle: true, dealer: true, sale: true },
+        data: { status, updatedAt: new Date() },
+        include: { vehicle: true, dealer: true, sale: true, assignedTo: true },
       });
 
       await tx.auditLog.create({
@@ -212,7 +222,7 @@ export const updateLead = async (req, res) => {
           entityType: 'lead',
           entityId: lead.id,
           action: 'update_status',
-          details: { oldStatus: lead.status, newStatus: status },
+          details: { oldStatus: lead.status, newStatus: status, notes },
         },
       });
 
@@ -249,6 +259,137 @@ export const updateLead = async (req, res) => {
   } catch (error) {
     console.error('Update lead error:', error);
     return res.status(500).json({ error: 'Failed to update lead' });
+  }
+};
+
+export const getLeadDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        vehicle: true,
+        dealer: true,
+        sale: true,
+        events: { orderBy: { createdAt: 'desc' } },
+        appointments: { orderBy: { scheduledAt: 'desc' } },
+        assignedTo: { select: { id: true, name: true, email: true } },
+        disputes: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    if (req.session.role !== 'admin' && req.session.dealerId !== lead.dealerId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    return res.json(lead);
+  } catch (error) {
+    console.error('Get lead details error:', error);
+    return res.status(500).json({ error: 'Failed to fetch lead details' });
+  }
+};
+
+export const createAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { scheduledAt, notes } = req.body;
+
+    const lead = await prisma.lead.findUnique({ where: { id } });
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    if (req.session.role !== 'admin' && req.session.dealerId !== lead.dealerId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    if (!scheduledAt) {
+      return res.status(400).json({ error: 'Scheduled time is required' });
+    }
+
+    const appointment = await prisma.$transaction(async (tx) => {
+      const created = await tx.viewingAppointment.create({
+        data: {
+          leadId: id,
+          dealerId: lead.dealerId,
+          scheduledAt: new Date(scheduledAt),
+          notes: notes ? String(notes).trim() : null,
+          createdBy: req.session.userId,
+        },
+      });
+
+      await tx.lead.update({
+        where: { id },
+        data: { status: 'viewing_arranged', updatedAt: new Date() },
+      });
+
+      await tx.leadEvent.create({
+        data: {
+          leadId: id,
+          event: 'appointment_scheduled',
+          newValue: new Date(scheduledAt).toISOString(),
+          actor: req.session.email || req.session.userId,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: req.session.userId,
+          dealerId: lead.dealerId,
+          entityType: 'lead',
+          entityId: id,
+          action: 'schedule_appointment',
+          details: { scheduledAt },
+        },
+      });
+
+      return created;
+    });
+
+    return res.status(201).json(appointment);
+  } catch (error) {
+    console.error('Create appointment error:', error);
+    return res.status(500).json({ error: 'Failed to schedule appointment' });
+  }
+};
+
+export const assignLead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { assignedToId } = req.body;
+
+    const lead = await prisma.lead.findUnique({ where: { id } });
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    if (req.session.role !== 'admin' && req.session.dealerId !== lead.dealerId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const updated = await prisma.lead.update({
+      where: { id },
+      data: { assignedToId: assignedToId || null, updatedAt: new Date() },
+      include: { assignedTo: true },
+    });
+
+    await prisma.leadEvent.create({
+      data: {
+        leadId: id,
+        event: 'assigned',
+        newValue: assignedToId || null,
+        actor: req.session.email || req.session.userId,
+      },
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    console.error('Assign lead error:', error);
+    return res.status(500).json({ error: 'Failed to assign lead' });
   }
 };
 

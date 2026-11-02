@@ -592,3 +592,72 @@ export const getPublicDealerProfile = async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch dealer profile' });
   }
 };
+
+export const suspendDealer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({ error: 'Suspension reason is required' });
+    }
+
+    const dealer = await prisma.dealer.update({
+      where: { id },
+      data: {
+        status: 'suspended',
+        suspendedAt: new Date(),
+        suspendedBy: req.session.userId,
+        suspensionReason: reason,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        dealerId: id,
+        entityType: 'dealer',
+        entityId: id,
+        action: 'suspend',
+        details: { reason },
+      },
+    });
+
+    return res.json(dealer);
+  } catch (error) {
+    console.error('Suspend dealer error:', error);
+    return res.status(500).json({ error: 'Failed to suspend dealer' });
+  }
+};
+
+export const reactivateDealer = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const dealer = await prisma.dealer.update({
+      where: { id },
+      data: {
+        status: 'active',
+        suspendedAt: null,
+        suspendedBy: null,
+        suspensionReason: null,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        dealerId: id,
+        entityType: 'dealer',
+        entityId: id,
+        action: 'reactivate',
+        details: {},
+      },
+    });
+
+    return res.json(dealer);
+  } catch (error) {
+    console.error('Reactivate dealer error:', error);
+    return res.status(500).json({ error: 'Failed to reactivate dealer' });
+  }
+};

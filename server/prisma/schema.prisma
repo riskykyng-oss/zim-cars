@@ -10,35 +10,38 @@ datasource db {
 }
 
 model Dealer {
-  id                 String               @id @default(uuid())
-  name               String               @db.VarChar(150)
-  slug               String               @unique @db.VarChar(100)
-  commissionRate     Float                @default(3.00) @map("commission_rate")
-  status             String               @default("pending_verification") @db.VarChar(30)
-  createdAt          DateTime             @default(now()) @map("created_at")
-  phone              String?              @db.VarChar(20)
-  location           String?              @db.VarChar(100)
+  id                 String                @id @default(uuid())
+  name               String                @db.VarChar(150)
+  slug               String                @unique @db.VarChar(100)
+  commissionRate     Float                 @default(3.00) @map("commission_rate")
+  status             String                @default("pending_verification") @db.VarChar(30)
+  createdAt          DateTime              @default(now()) @map("created_at")
+  phone              String?               @db.VarChar(20)
+  location           String?               @db.VarChar(100)
   address            String?
   description        String?
-  logoUrl            String?              @map("logo_url")
-  coverUrl           String?              @map("cover_url")
-  plan               String               @default("trial") @db.VarChar(20)
-  trialEndsAt        DateTime?            @map("trial_ends_at")
-  subscriptionEndsAt DateTime?            @map("subscription_ends_at")
-  lastPaymentAt      DateTime?            @map("last_payment_at")
-  onboardingPaid     Boolean              @default(false) @map("onboarding_paid")
-  subscriptionPaid   Boolean              @default(false) @map("subscription_paid")
-  joinedAt           DateTime             @default(now()) @map("joined_at")
-  approvedAt         DateTime?            @map("approved_at")
-  approvedBy         String?              @map("approved_by")
-  ownerFullName      String?              @map("owner_full_name") @db.VarChar(150)
-  businessEmail      String?              @map("business_email") @db.VarChar(255)
-  ecoCashName        String?              @map("ecocash_name") @db.VarChar(150)
-  idNumber           String?              @map("id_number") @db.VarChar(50)
-  verifiedAt         DateTime?            @map("verified_at")
-  verifiedBy         String?              @map("verified_by")
-  rejectionReason    String?              @map("rejection_reason")
-  verificationStatus String               @default("pending") @map("verification_status") @db.VarChar(20)
+  logoUrl            String?               @map("logo_url")
+  coverUrl           String?               @map("cover_url")
+  plan               String                @default("trial") @db.VarChar(20)
+  trialEndsAt        DateTime?             @map("trial_ends_at")
+  subscriptionEndsAt DateTime?             @map("subscription_ends_at")
+  lastPaymentAt      DateTime?             @map("last_payment_at")
+  onboardingPaid     Boolean               @default(false) @map("onboarding_paid")
+  subscriptionPaid   Boolean               @default(false) @map("subscription_paid")
+  joinedAt           DateTime              @default(now()) @map("joined_at")
+  approvedAt         DateTime?             @map("approved_at")
+  approvedBy         String?               @map("approved_by")
+  ownerFullName      String?               @map("owner_full_name") @db.VarChar(150)
+  businessEmail      String?               @map("business_email") @db.VarChar(255)
+  ecoCashName        String?               @map("ecocash_name") @db.VarChar(150)
+  idNumber           String?               @map("id_number") @db.VarChar(50)
+  verifiedAt         DateTime?             @map("verified_at")
+  verifiedBy         String?               @map("verified_by")
+  rejectionReason    String?               @map("rejection_reason")
+  verificationStatus String                @default("pending") @map("verification_status") @db.VarChar(20)
+  suspendedAt        DateTime?             @map("suspended_at")
+  suspendedBy        String?               @map("suspended_by")
+  suspensionReason   String?               @map("suspension_reason")
   auditLogs          AuditLog[]
   verifications      DealerVerification[]
   leads              Lead[]
@@ -46,6 +49,8 @@ model Dealer {
   stories            DealerStory[]
   users              User[]
   vehicles           Vehicle[]
+  appointments       ViewingAppointment[]
+  disputes           LeadDispute[]
 
   @@map("dealers")
 }
@@ -76,6 +81,7 @@ model User {
   auditLogs        AuditLog[]
   paymentsRecorded CommissionPayment[] @relation("PaymentsRecordedBy")
   salesConfirmed   Sales[]             @relation("SalesConfirmedBy")
+  assignedLeads    Lead[]              @relation("LeadAssignment")
   dealer           Dealer?             @relation(fields: [dealerId], references: [id])
 
   @@index([dealerId])
@@ -125,24 +131,31 @@ model VehicleImage {
 }
 
 model Lead {
-  id           String      @id @default(uuid())
-  dealerId     String      @map("dealer_id")
-  vehicleId    String?     @map("vehicle_id")
-  buyerName    String?     @map("buyer_name") @db.VarChar(150)
-  buyerPhone   String      @map("buyer_phone") @db.VarChar(30)
-  source       String      @db.VarChar(50)
-  referralCode String?     @map("referral_code") @db.VarChar(80)
-  status       String      @default("new") @db.VarChar(30)
-  consentAt    DateTime?   @map("consent_at")
-  createdAt    DateTime    @default(now()) @map("created_at")
-  ip           String?
-  leadId       String?     @unique @map("lead_id_short") @db.VarChar(20)
-  pageUrl      String?     @map("page_url")
-  userAgent    String?     @map("user_agent")
-  events       LeadEvent[]
-  dealer       Dealer      @relation(fields: [dealerId], references: [id])
-  vehicle      Vehicle?    @relation(fields: [vehicleId], references: [id])
-  sale         Sales?
+  id             String               @id @default(uuid())
+  dealerId       String               @map("dealer_id")
+  vehicleId      String?              @map("vehicle_id")
+  buyerName      String?              @map("buyer_name") @db.VarChar(150)
+  buyerPhone     String               @map("buyer_phone") @db.VarChar(30)
+  source         String               @db.VarChar(50)
+  referralCode   String?              @map("referral_code") @db.VarChar(80)
+  campaignId     String?              @map("campaign_id")
+  campaign       Campaign?            @relation(fields: [campaignId], references: [id])
+  status         String               @default("new") @db.VarChar(30)
+  consentAt      DateTime?            @map("consent_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at")
+  ip             String?
+  leadId         String?              @unique @map("lead_id_short") @db.VarChar(20)
+  pageUrl        String?              @map("page_url")
+  userAgent      String?              @map("user_agent")
+  assignedToId   String?              @map("assigned_to_id")
+  assignedTo     User?                @relation("LeadAssignment", fields: [assignedToId], references: [id])
+  events         LeadEvent[]
+  appointments   ViewingAppointment[]
+  dealer         Dealer               @relation(fields: [dealerId], references: [id])
+  vehicle        Vehicle?             @relation(fields: [vehicleId], references: [id])
+  sale           Sales?
+  disputes       LeadDispute[]
 
   @@index([dealerId])
   @@index([vehicleId])
@@ -151,7 +164,63 @@ model Lead {
   @@index([dealerId, createdAt])
   @@index([dealerId, status])
   @@index([vehicleId, buyerPhone])
+  @@index([assignedToId])
   @@map("leads")
+}
+
+model ViewingAppointment {
+  id        String   @id @default(uuid())
+  leadId    String   @map("lead_id")
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  dealerId  String   @map("dealer_id")
+  dealer    Dealer   @relation(fields: [dealerId], references: [id])
+  scheduledAt DateTime @map("scheduled_at")
+  status    String   @default("scheduled") @db.VarChar(30) // scheduled, completed, cancelled, no_show
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  createdBy String?  @map("created_by")
+
+  @@index([leadId])
+  @@index([dealerId])
+  @@index([scheduledAt])
+  @@map("viewing_appointments")
+}
+
+model Campaign {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(150)
+  description String?
+  source      String   @db.VarChar(50)
+  startDate   DateTime @map("start_date")
+  endDate     DateTime? @map("end_date")
+  active      Boolean  @default(true)
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  leads       Lead[]
+
+  @@map("campaigns")
+}
+
+model LeadDispute {
+  id          String   @id @default(uuid())
+  leadId      String   @map("lead_id")
+  lead        Lead     @relation(fields: [leadId], references: [id])
+  dealerId    String   @map("dealer_id")
+  dealer      Dealer   @relation(fields: [dealerId], references: [id])
+  reason      String
+  details     String?
+  status      String   @default("open") @db.VarChar(30) // open, investigating, resolved, rejected
+  resolution  String?
+  resolvedBy  String?  @map("resolved_by")
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([leadId])
+  @@index([dealerId])
+  @@index([status])
+  @@map("lead_disputes")
 }
 
 model LeadEvent {
@@ -182,6 +251,11 @@ model Sales {
   confirmedAt      DateTime?           @map("confirmed_at")
   markedBy         String?             @map("marked_by")
   refCode          String?             @map("ref_code") @db.VarChar(80)
+  evidenceUrl      String?             @map("evidence_url")
+  evidenceNotes    String?             @map("evidence_notes")
+  disputeReason    String?             @map("dispute_reason")
+  disputedAt       DateTime?           @map("disputed_at")
+  disputedBy       String?             @map("disputed_by")
   payments         CommissionPayment[]
   confirmedBy      User?               @relation("SalesConfirmedBy", fields: [confirmedById], references: [id])
   lead             Lead                @relation(fields: [leadId], references: [id])

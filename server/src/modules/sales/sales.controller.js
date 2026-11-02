@@ -9,6 +9,7 @@ export const createSale = async (req, res) => {
   try {
     const { leadId } = req.body;
     const salePrice = isPositiveAmount(req.body.salePrice);
+    const evidenceNotes = req.body.evidenceNotes;
 
     if (!leadId) {
       return res.status(400).json({ error: 'A lead is required to record a sale.' });
@@ -61,6 +62,7 @@ export const createSale = async (req, res) => {
           commissionAmount,
           status: 'pending',
           markedBy: actor,
+          evidenceNotes: evidenceNotes ? String(evidenceNotes).trim() : null,
         },
         include: {
           lead: true,
@@ -70,7 +72,7 @@ export const createSale = async (req, res) => {
 
       await tx.lead.update({
         where: { id: leadId },
-        data: { status: 'sold' },
+        data: { status: 'sold', updatedAt: new Date() },
       });
 
       await tx.auditLog.create({
@@ -154,8 +156,8 @@ export const confirmSale = async (req, res) => {
       return res.status(404).json({ error: 'Sale not found' });
     }
 
-    if (req.session.role !== 'admin' && req.session.dealerId !== sale.lead.dealerId) {
-      return res.status(403).json({ error: 'Forbidden' });
+    if (req.session.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admin can confirm sales' });
     }
 
     if (sale.status === 'confirmed' || sale.status === 'completed') {
@@ -191,5 +193,55 @@ export const confirmSale = async (req, res) => {
   } catch (error) {
     console.error('Confirm sale error:', error);
     return res.status(500).json({ error: 'Failed to confirm sale' });
+  }
+};
+
+export const disputeSale = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (req.session.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admin can dispute sales' });
+    }
+
+    if (!reason) {
+      return res.status(400).json({ error: 'Dispute reason is required' });
+    }
+
+    const sale = await prisma.sales.findUnique({
+      where: { id },
+      include: { lead: true },
+    });
+
+    if (!sale) {
+      return res.status(404).json({ error: 'Sale not found' });
+    }
+
+    const updated = await prisma.sales.update({
+      where: { id },
+      data: {
+        status: 'disputed',
+        disputeReason: reason,
+        disputedAt: new Date(),
+        disputedBy: req.session.userId,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        dealerId: sale.lead.dealerId,
+        entityType: 'sale',
+        entityId: sale.id,
+        action: 'dispute',
+        details: { reason },
+      },
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    console.error('Dispute sale error:', error);
+    return res.status(500).json({ error: 'Failed to dispute sale' });
   }
 };

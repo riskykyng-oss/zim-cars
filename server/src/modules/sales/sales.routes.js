@@ -1,11 +1,12 @@
 import express from 'express';
-import { createSale, getSales, confirmSale } from './sales.controller.js';
+import { createSale, getSales, confirmSale, disputeSale } from './sales.controller.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 
 const router = express.Router();
 
 router.get('/', requireAuth, getSales);
 router.post('/', requireAuth, requireRole(['admin', 'dealer_owner', 'dealer_staff']), createSale);
-router.post('/:id/confirm', requireAuth, requireRole(['admin', 'dealer_owner']), confirmSale);
+router.post('/:id/confirm', requireAuth, requireRole(['admin']), confirmSale);
+router.post('/:id/dispute', requireAuth, requireRole(['admin']), disputeSale);
 
 export default router;

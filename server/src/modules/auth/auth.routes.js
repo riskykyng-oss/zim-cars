@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, logout, getMe, registerDealer, uploadVerification, getDealerVerification, getAllDealers, verifyDealer, rejectDealer, getPublicDealerProfile, updateDealerProfile, uploadDealerLogo, uploadDealerCover, createDealerStory, getDealerStories, deleteDealerStory } from './auth.controller.js';
+import { login, logout, getMe, registerDealer, uploadVerification, getDealerVerification, getAllDealers, verifyDealer, rejectDealer, getPublicDealerProfile, updateDealerProfile, uploadDealerLogo, uploadDealerCover, createDealerStory, getDealerStories, deleteDealerStory, suspendDealer, reactivateDealer } from './auth.controller.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { uploadDocument, upload } from '../../middleware/upload.js';
 
@@ -39,5 +39,7 @@ router.delete('/dealer/stories/:id', requireAuth, requireRole(['dealer_owner', '
 router.get('/dealers', requireAuth, requireRole(['admin']), getAllDealers);
 router.post('/dealers/:id/verify', requireAuth, requireRole(['admin']), verifyDealer);
 router.post('/dealers/:id/reject', requireAuth, requireRole(['admin']), rejectDealer);
+router.post('/dealers/:id/suspend', requireAuth, requireRole(['admin']), suspendDealer);
+router.post('/dealers/:id/reactivate', requireAuth, requireRole(['admin']), reactivateDealer);
 
 export default router;
