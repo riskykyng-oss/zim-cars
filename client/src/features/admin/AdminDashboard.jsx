@@ -216,6 +216,7 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     {dealer.rejectionReason && <p className="text-sm text-red-600 mb-2">Rejected: {dealer.rejectionReason}</p>}
+                    {dealer.suspensionReason && <p className="text-sm text-red-600 mb-2">Suspended: {dealer.suspensionReason}</p>}
                     <div className="mb-3">
                       <p className="text-sm font-semibold mb-1">Documents</p>
                       {dealer.verifications?.length === 0 ? <p className="text-sm text-gray-500">No documents uploaded.</p> : (
@@ -228,12 +229,28 @@ const AdminDashboard = () => {
                         </div>
                       )}
                     </div>
-                    {dealer.verificationStatus !== 'verified' && dealer.verificationStatus !== 'rejected' && (
-                      <div className="flex gap-2">
-                        <button onClick={() => verifyDealer(dealer.id)} className="bg-green-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Approve & Activate Trial</button>
-                        <button onClick={() => rejectDealer(dealer.id)} className="bg-red-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Reject</button>
-                      </div>
-                    )}
+                    <div className="flex gap-2 flex-wrap">
+                      {dealer.verificationStatus !== 'verified' && dealer.verificationStatus !== 'rejected' && (
+                        <>
+                          <button onClick={() => verifyDealer(dealer.id)} className="bg-green-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Approve & Activate Trial</button>
+                          <button onClick={() => rejectDealer(dealer.id)} className="bg-red-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Reject</button>
+                        </>
+                      )}
+                      {dealer.status === 'suspended' ? (
+                        <button onClick={async () => {
+                          if (!confirm('Reactivate this dealer?')) return;
+                          try { await api.post(`/auth/dealers/${dealer.id}/reactivate`); alert('Dealer reactivated'); fetchData(); } catch(e) { alert('Error'); }
+                        }} className="bg-blue-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Reactivate</button>
+                      ) : (
+                        dealer.verificationStatus === 'verified' && dealer.status !== 'pending_verification' && (
+                          <button onClick={async () => {
+                            const reason = prompt('Suspension reason:');
+                            if (!reason) return;
+                            try { await api.post(`/auth/dealers/${dealer.id}/suspend`, { reason }); alert('Dealer suspended'); fetchData(); } catch(e) { alert('Error'); }
+                          }} className="bg-orange-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Suspend</button>
+                        )
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

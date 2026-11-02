@@ -703,21 +703,26 @@ const DealerDashboard = () => {
                           >
                             <option value="new">new</option>
                             <option value="contacted">contacted</option>
+                            <option value="viewing_arranged">viewing arranged</option>
+                            <option value="viewing_completed">viewing completed</option>
+                            <option value="negotiation">negotiation</option>
                             <option value="sold">sold</option>
                             <option value="lost">lost</option>
+                            <option value="unreachable">unreachable</option>
                           </select>
-                          {lead.status !== 'sold' && !lead.sale && (
+                          {lead.status !== 'sold' && !lead.sale && lead.referralCode && (
                             <button
                               onClick={() => {
                                 const price = prompt('Sale price ($)');
                                 if (!price) return;
-                                api.post('/sales', { leadId: lead.id, salePrice: price }).then(() => fetchData());
+                                api.post('/sales', { leadId: lead.id, salePrice: price }).then(() => fetchData()).catch(err => alert(err.response?.data?.error || 'Error'));
                               }}
                               className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 min-h-[44px]"
                             >
                               Mark sold
                             </button>
                           )}
+                          {!lead.referralCode && lead.status !== 'sold' && !lead.sale && <span className="text-xs text-red-600">No commission (no ref)</span>}
                         </td>
                       </tr>
                     ))}
