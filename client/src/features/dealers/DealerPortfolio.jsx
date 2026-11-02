@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
-import { MapPin, Phone } from 'lucide-react';
+import { MapPin, Phone, Home } from 'lucide-react';
 
 const DealerPortfolio = () => {
   const { slug } = useParams();
@@ -39,28 +39,71 @@ const DealerPortfolio = () => {
     );
   }
 
-  const { dealer, vehicles } = data;
+  const { dealer, vehicles, stories = [] } = data;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-        <h1 className="text-3xl font-bold mb-2">{dealer.name}</h1>
-        <div className="flex flex-wrap gap-4 text-gray-600">
-          {dealer.location && (
-            <div className="flex items-center gap-1">
-              <MapPin className="w-4 h-4" />
-              <span>{dealer.location}</span>
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden mb-8">
+        {dealer.coverUrl && (
+          <div className="h-48 md:h-64 w-full">
+            <img src={dealer.coverUrl} alt={`${dealer.name} cover`} className="w-full h-full object-cover" />
+          </div>
+        )}
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            {dealer.logoUrl ? (
+              <img src={dealer.logoUrl} alt={`${dealer.name} logo`} className="w-16 h-16 rounded-full object-contain bg-gray-50 border" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xl font-bold">
+                {dealer.name?.charAt(0)}
+              </div>
+            )}
+            <div>
+              <h1 className="text-3xl font-bold">{dealer.name}</h1>
+              <p className="text-sm text-gray-500">Verified dealer on Zim Cars</p>
             </div>
-          )}
-          {dealer.phone && (
-            <div className="flex items-center gap-1">
-              <Phone className="w-4 h-4" />
-              <span>{dealer.phone}</span>
-            </div>
-          )}
+          </div>
+          {dealer.description && <p className="text-gray-700 mb-4 whitespace-pre-line">{dealer.description}</p>}
+          <div className="flex flex-wrap gap-4 text-gray-600">
+            {dealer.location && (
+              <div className="flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                <span>{dealer.location}</span>
+              </div>
+            )}
+            {dealer.address && (
+              <div className="flex items-center gap-1">
+                <Home className="w-4 h-4" />
+                <span>{dealer.address}</span>
+              </div>
+            )}
+            {dealer.phone && (
+              <div className="flex items-center gap-1">
+                <Phone className="w-4 h-4" />
+                <span>{dealer.phone}</span>
+              </div>
+            )}
+          </div>
         </div>
-        <p className="text-sm text-gray-500 mt-2">Verified dealer on Zim Cars</p>
       </div>
+
+      {stories.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">Stories</h2>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {stories.map((story) => (
+              <div key={story.id} className="relative flex-shrink-0 w-48 h-72 rounded-lg overflow-hidden shadow-sm">
+                <img src={story.imageUrl} alt={story.caption || 'story'} className="w-full h-full object-cover" />
+                {story.caption && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2">
+                    {story.caption}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <h2 className="text-2xl font-bold mb-6">Available Vehicles ({vehicles.length})</h2>
 

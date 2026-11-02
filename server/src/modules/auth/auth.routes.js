@@ -1,8 +1,8 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, logout, getMe, registerDealer, uploadVerification, getDealerVerification, getAllDealers, verifyDealer, rejectDealer, getPublicDealerProfile } from './auth.controller.js';
+import { login, logout, getMe, registerDealer, uploadVerification, getDealerVerification, getAllDealers, verifyDealer, rejectDealer, getPublicDealerProfile, updateDealerProfile, uploadDealerLogo, uploadDealerCover, createDealerStory, getDealerStories, deleteDealerStory } from './auth.controller.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
-import { uploadDocument } from '../../middleware/upload.js';
+import { uploadDocument, upload } from '../../middleware/upload.js';
 
 const router = express.Router();
 
@@ -30,6 +30,12 @@ router.post('/logout', requireAuth, logout);
 router.get('/me', getMe);
 router.post('/dealer/verify/upload', requireAuth, uploadDocument.single('document'), uploadVerification);
 router.get('/dealer/verify', requireAuth, getDealerVerification);
+router.put('/dealer/profile', requireAuth, requireRole(['dealer_owner', 'dealer_staff']), updateDealerProfile);
+router.post('/dealer/logo', requireAuth, requireRole(['dealer_owner', 'dealer_staff']), upload.single('logo'), uploadDealerLogo);
+router.post('/dealer/cover', requireAuth, requireRole(['dealer_owner', 'dealer_staff']), upload.single('cover'), uploadDealerCover);
+router.get('/dealer/stories', requireAuth, requireRole(['dealer_owner', 'dealer_staff']), getDealerStories);
+router.post('/dealer/stories', requireAuth, requireRole(['dealer_owner', 'dealer_staff']), upload.single('story'), createDealerStory);
+router.delete('/dealer/stories/:id', requireAuth, requireRole(['dealer_owner', 'dealer_staff']), deleteDealerStory);
 router.get('/dealers', requireAuth, requireRole(['admin']), getAllDealers);
 router.post('/dealers/:id/verify', requireAuth, requireRole(['admin']), verifyDealer);
 router.post('/dealers/:id/reject', requireAuth, requireRole(['admin']), rejectDealer);

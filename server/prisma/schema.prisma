@@ -18,6 +18,10 @@ model Dealer {
   createdAt          DateTime             @default(now()) @map("created_at")
   phone              String?              @db.VarChar(20)
   location           String?              @db.VarChar(100)
+  address            String?
+  description        String?
+  logoUrl            String?              @map("logo_url")
+  coverUrl           String?              @map("cover_url")
   plan               String               @default("trial") @db.VarChar(20)
   trialEndsAt        DateTime?            @map("trial_ends_at")
   subscriptionEndsAt DateTime?            @map("subscription_ends_at")
@@ -39,10 +43,26 @@ model Dealer {
   verifications      DealerVerification[]
   leads              Lead[]
   payments           Payment[]
+  stories            DealerStory[]
   users              User[]
   vehicles           Vehicle[]
 
   @@map("dealers")
+}
+
+model DealerStory {
+  id        String   @id @default(uuid())
+  dealerId  String   @map("dealer_id")
+  imageUrl  String   @map("image_url")
+  caption   String?
+  vehicleId String?  @map("vehicle_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @default(dbgenerated("NOW() + interval '24 hours'")) @map("expires_at")
+  dealer    Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([dealerId])
+  @@index([expiresAt])
+  @@map("dealer_stories")
 }
 
 model User {

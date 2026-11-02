@@ -1,6 +1,11 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../../config/database.js';
 import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import { hasSupabaseStorage, uploadImageBuffer } from '../../config/supabase.js';
+import { uploadDir, ensureUploadDir } from '../../middleware/upload.js';
 
 const publicUser = (user) => ({
   id: user.id,
@@ -285,6 +290,14 @@ export const getDealerVerification = async (req, res) => {
         subscriptionEndsAt: dealer?.subscriptionEndsAt,
         slug: dealer?.slug,
         ownerFullName: dealer?.ownerFullName,
+        name: dealer?.name,
+        phone: dealer?.phone,
+        location: dealer?.location,
+        address: dealer?.address,
+        description: dealer?.description,
+        logoUrl: dealer?.logoUrl,
+        coverUrl: dealer?.coverUrl,
+        businessEmail: dealer?.businessEmail,
       },
       verifications: dealer?.verifications || [],
     });
@@ -392,6 +405,133 @@ export const rejectDealer = async (req, res) => {
   }
 };
 
+export const updateDealerProfile = async (req, res) => {
+  try {
+    if (!req.session.dealerId) {
+      return res.status(403).json({ error: 'No dealer assigned' });
+    }
+    const { name, phone, location, address, description, businessEmail } = req.body;
+    const dealer = await prisma.dealer.update({
+      where: { id: req.session.dealerId },
+      data: {
+        name: name ? String(name).trim() : undefined,
+        phone: phone ? String(phone).replace(/\s+/g, '') : undefined,
+        location: location ? String(location).trim() : undefined,
+        address: address ? String(address).trim() : undefined,
+        description: description ? String(description).trim() : undefined,
+        businessEmail: businessEmail ? String(businessEmail).trim().toLowerCase() : undefined,
+      },
+    });
+    return res.json(dealer);
+  } catch (error) {
+    console.error('Update dealer profile error:', error);
+    return res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
+const uploadDealerImage = async (req, res, field) => {
+  try {
+    if (!req.session.dealerId) {
+      return res.status(403).json({ error: 'No dealer assigned' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const extension = path.extname(req.file.originalname).toLowerCase() || '.jpg';
+    const filename = `dealers/${req.session.dealerId}/${field}-${uuidv4()}${extension}`;
+    let imageUrl;
+    if (hasSupabaseStorage()) {
+      imageUrl = await uploadImageBuffer(req.file.buffer, filename, req.file.mimetype);
+    } else {
+      if (process.env.VERCEL) {
+        return res.status(500).json({ error: 'Image storage is not configured.' });
+      }
+      ensureUploadDir();
+      fs.writeFileSync(path.join(uploadDir, filename.replace(`dealers/${req.session.dealerId}/`, '')), req.file.buffer);
+      imageUrl = `/uploads/${filename.replace(`dealers/${req.session.dealerId}/`, '')}`;
+    }
+    const dealer = await prisma.dealer.update({
+      where: { id: req.session.dealerId },
+      data: field === 'logo' ? { logoUrl: imageUrl } : { coverUrl: imageUrl },
+    });
+    return res.json({ url: imageUrl, dealer });
+  } catch (error) {
+    console.error('Upload dealer image error:', error);
+    return res.status(500).json({ error: 'Failed to upload image' });
+  }
+};
+
+export const uploadDealerLogo = async (req, res) => uploadDealerImage(req, res, 'logo');
+export const uploadDealerCover = async (req, res) => uploadDealerImage(req, res, 'cover');
+
+export const createDealerStory = async (req, res) => {
+  try {
+    if (!req.session.dealerId) {
+      return res.status(403).json({ error: 'No dealer assigned' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const { caption, vehicleId } = req.body;
+    const extension = path.extname(req.file.originalname).toLowerCase() || '.jpg';
+    const filename = `stories/${req.session.dealerId}/${uuidv4()}${extension}`;
+    let imageUrl;
+    if (hasSupabaseStorage()) {
+      imageUrl = await uploadImageBuffer(req.file.buffer, filename, req.file.mimetype);
+    } else {
+      if (process.env.VERCEL) {
+        return res.status(500).json({ error: 'Image storage is not configured.' });
+      }
+      ensureUploadDir();
+      fs.writeFileSync(path.join(uploadDir, filename.replace(`stories/${req.session.dealerId}/`, '')), req.file.buffer);
+      imageUrl = `/uploads/${filename.replace(`stories/${req.session.dealerId}/`, '')}`;
+    }
+    const story = await prisma.dealerStory.create({
+      data: {
+        dealerId: req.session.dealerId,
+        imageUrl,
+        caption: caption ? String(caption).trim() : null,
+        vehicleId: vehicleId || null,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+    return res.status(201).json(story);
+  } catch (error) {
+    console.error('Create dealer story error:', error);
+    return res.status(500).json({ error: 'Failed to create story' });
+  }
+};
+
+export const getDealerStories = async (req, res) => {
+  try {
+    if (!req.session.dealerId) {
+      return res.status(403).json({ error: 'No dealer assigned' });
+    }
+    const stories = await prisma.dealerStory.findMany({
+      where: { dealerId: req.session.dealerId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return res.json(stories);
+  } catch (error) {
+    console.error('Get dealer stories error:', error);
+    return res.status(500).json({ error: 'Failed to fetch stories' });
+  }
+};
+
+export const deleteDealerStory = async (req, res) => {
+  try {
+    if (!req.session.dealerId) {
+      return res.status(403).json({ error: 'No dealer assigned' });
+    }
+    const { id } = req.params;
+    await prisma.dealerStory.deleteMany({ where: { id, dealerId: req.session.dealerId } });
+    return res.json({ message: 'Story deleted' });
+  } catch (error) {
+    console.error('Delete dealer story error:', error);
+    return res.status(500).json({ error: 'Failed to delete story' });
+  }
+};
+
 export const getPublicDealerProfile = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -403,6 +543,10 @@ export const getPublicDealerProfile = async (req, res) => {
         slug: true,
         phone: true,
         location: true,
+        address: true,
+        description: true,
+        logoUrl: true,
+        coverUrl: true,
         status: true,
         trialEndsAt: true,
         subscriptionEndsAt: true,
@@ -434,7 +578,15 @@ export const getPublicDealerProfile = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    return res.json({ dealer, vehicles });
+    const stories = await prisma.dealerStory.findMany({
+      where: {
+        dealerId: dealer.id,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json({ dealer, vehicles, stories });
   } catch (error) {
     console.error('Get public dealer profile error:', error);
     return res.status(500).json({ error: 'Failed to fetch dealer profile' });

@@ -27,6 +27,7 @@ const DealerDashboard = () => {
   const [editVehicle, setEditVehicle] = useState({
     id: '', make: '', model: '', year: '', price: '', description: '', status: ''
   });
+  const [stories, setStories] = useState([]);
   
   useEffect(() => {
     fetchData();
@@ -34,13 +35,14 @@ const DealerDashboard = () => {
   
   const fetchData = async () => {
     try {
-      const [vehiclesRes, leadsRes, salesRes, verificationRes, paymentsRes, paymentInfoRes] = await Promise.all([
+      const [vehiclesRes, leadsRes, salesRes, verificationRes, paymentsRes, paymentInfoRes, storiesRes] = await Promise.all([
         api.get('/vehicles'),
         api.get('/leads'),
         api.get('/sales'),
         api.get('/auth/dealer/verify').catch(() => ({ data: { dealer: null, verifications: [] } })),
         api.get('/payments/my').catch(() => ({ data: [] })),
-        api.get('/payments/info').catch(() => ({ data: null }))
+        api.get('/payments/info').catch(() => ({ data: null })),
+        api.get('/auth/dealer/stories').catch(() => ({ data: [] }))
       ]);
       setVehicles(vehiclesRes.data);
       setLeads(leadsRes.data);
@@ -49,6 +51,7 @@ const DealerDashboard = () => {
       setVerificationDocs(verificationRes.data.verifications || []);
       setPayments(paymentsRes.data);
       setPaymentInfo(paymentInfoRes.data);
+      setStories(storiesRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -217,6 +220,73 @@ const DealerDashboard = () => {
       <h1 className="text-3xl font-bold mb-8">Dealer Dashboard</h1>
       
       <div className="bg-white rounded shadow p-6 mb-6">
+        <h2 className="text-lg font-bold mb-3">Company Profile</h2>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const form = e.target;
+          const data = {
+            name: form.name.value,
+            phone: form.phone.value,
+            location: form.location.value,
+            address: form.address.value,
+            description: form.description.value,
+            businessEmail: form.businessEmail.value,
+          };
+          try {
+            await api.put('/auth/dealer/profile', data);
+            alert('Profile updated');
+            fetchData();
+          } catch (err) {
+            alert('Failed to update profile');
+          }
+        }} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <input name="name" defaultValue={verification?.name || ''} placeholder="Business Name" className="p-2 border rounded min-h-[44px]" />
+          <input name="phone" defaultValue={verification?.phone || ''} placeholder="Phone" className="p-2 border rounded min-h-[44px]" />
+          <input name="location" defaultValue={verification?.location || ''} placeholder="City/Town" className="p-2 border rounded min-h-[44px]" />
+          <input name="address" defaultValue={verification?.address || ''} placeholder="Full Address" className="p-2 border rounded min-h-[44px]" />
+          <input name="businessEmail" defaultValue={verification?.businessEmail || ''} placeholder="Business Email" className="p-2 border rounded min-h-[44px]" />
+          <textarea name="description" defaultValue={verification?.description || ''} placeholder="About your dealership" className="p-2 border rounded md:col-span-2" rows="3" />
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded min-h-[44px] md:col-span-2">Save Profile</button>
+        </form>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Logo</label>
+            <input type="file" accept="image/*" onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              const fd = new FormData();
+              fd.append('logo', file);
+              try {
+                await api.post('/auth/dealer/logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                alert('Logo updated');
+                fetchData();
+              } catch (err) {
+                alert('Failed to upload logo');
+              }
+            }} className="p-2 border rounded w-full min-h-[44px]" />
+            {verification?.logoUrl && <img src={verification.logoUrl} alt="logo" className="mt-2 h-16 object-contain" />}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Cover/Billboard</label>
+            <input type="file" accept="image/*" onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              const fd = new FormData();
+              fd.append('cover', file);
+              try {
+                await api.post('/auth/dealer/cover', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                alert('Cover updated');
+                fetchData();
+              } catch (err) {
+                alert('Failed to upload cover');
+              }
+            }} className="p-2 border rounded w-full min-h-[44px]" />
+            {verification?.coverUrl && <img src={verification.coverUrl} alt="cover" className="mt-2 h-24 w-full object-cover rounded" />}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded shadow p-6 mb-6">
         <h2 className="text-lg font-bold mb-3">Onboarding Checklist</h2>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -327,6 +397,12 @@ const DealerDashboard = () => {
           className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'sales' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
         >
           Sales ({sales.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('stories')}
+          className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'stories' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Stories
         </button>
         <button
           onClick={() => setActiveTab('verification')}
@@ -756,6 +832,48 @@ const DealerDashboard = () => {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {activeTab === 'stories' && (
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-xl font-bold mb-4">Dealer Stories (24hr)</h2>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const file = form.story.files[0];
+            if (!file) { alert('Select an image'); return; }
+            const fd = new FormData();
+            fd.append('story', file);
+            if (form.caption.value) fd.append('caption', form.caption.value);
+            try {
+              await api.post('/auth/dealer/stories', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+              form.reset();
+              fetchData();
+              alert('Story posted');
+            } catch (err) {
+              alert('Failed to post story');
+            }
+          }} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <input type="file" name="story" accept="image/*" className="p-2 border rounded min-h-[44px]" required />
+            <input name="caption" placeholder="Caption (optional)" className="p-2 border rounded min-h-[44px]" />
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded min-h-[44px]">Post Story</button>
+          </form>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stories.map((story) => (
+              <div key={story.id} className="relative">
+                <img src={story.imageUrl} alt={story.caption || 'story'} className="w-full h-40 object-cover rounded" />
+                {story.caption && <p className="text-xs mt-1">{story.caption}</p>}
+                <button onClick={async () => {
+                  try {
+                    await api.delete(`/auth/dealer/stories/${story.id}`);
+                    fetchData();
+                  } catch (err) { alert('Failed to delete'); }
+                }} className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded">Delete</button>
+                <p className="text-xs text-gray-500">Expires {new Date(story.expiresAt).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
