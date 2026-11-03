@@ -337,7 +337,7 @@ const DealerDashboard = () => {
         <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-6">
           <h3 className="font-semibold text-blue-800 mb-1">Payment Required</h3>
           <p className="text-sm text-blue-700">
-            Submit your payment proof below. EcoCash: <strong>{paymentInfo?.ecocash || '0773412018'}</strong> • Joining $3 (one-time) • Subscription $2/month
+            Submit your payment proof below. {paymentInfo?.testMode && <span className="inline-block px-2 py-0.5 bg-yellow-200 text-yellow-900 rounded text-xs font-bold mr-1">TEST MODE</span>} EcoCash: <strong>{paymentInfo?.ecocash || '0773412018'}</strong> {paymentInfo?.testMode && paymentInfo?.testWallets && <span>• InnBucks: <strong>{paymentInfo.testWallets.innbucks}</strong> • OneMoney: <strong>{paymentInfo.testWallets.onemoney}</strong></span>} • Joining $3 (one-time) • Subscription $2/month
           </p>
         </div>
       )}
@@ -924,7 +924,7 @@ const DealerDashboard = () => {
 
           <div className="bg-white rounded shadow p-6">
             <h2 className="text-xl font-bold mb-2">Payments</h2>
-            <p className="text-sm text-gray-600 mb-4">EcoCash: <strong>{paymentInfo?.ecocash || '0773412018'}</strong> • Pricing: Joining $3, Subscription $2/month, Platform Fee ${paymentInfo?.pricing?.platformFee || 65} per confirmed platform sale</p>
+            <p className="text-sm text-gray-600 mb-4">{paymentInfo?.testMode && <span className="inline-block px-2 py-0.5 bg-yellow-200 text-yellow-900 rounded text-xs font-bold mr-2">TEST MODE - DUMMY WALLETS</span>} EcoCash: <strong>{paymentInfo?.ecocash || '0773412018'}</strong> {paymentInfo?.testMode && paymentInfo?.testWallets && <span>• InnBucks: <strong>{paymentInfo.testWallets.innbucks}</strong> • OneMoney: <strong>{paymentInfo.testWallets.onemoney}</strong></span>} • Pricing: Joining $3, Subscription $2/month, Platform Fee ${paymentInfo?.pricing?.platformFee || 65} per confirmed platform sale</p>
             <form onSubmit={handlePaymentSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <select value={paymentForm.type} onChange={(e) => setPaymentForm({...paymentForm, type: e.target.value})} className="p-2 border rounded min-h-[44px]">
                 <option value="subscription">Subscription ($2)</option>

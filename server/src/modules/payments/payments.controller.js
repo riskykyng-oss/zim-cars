@@ -7,8 +7,15 @@ import fs from 'fs';
 
 export const getPaymentInfo = async (req, res) => {
   try {
+    const testMode = process.env.TEST_MODE === 'true' || process.env.NODE_ENV !== 'production';
     return res.json({
-      ecocash: process.env.ECOCASH_NUMBER || '0773412018',
+      ecocash: testMode ? '0770000000' : (process.env.ECOCASH_NUMBER || '0773412018'),
+      testMode,
+      testWallets: testMode ? {
+        ecocash: '0770000000',
+        innbucks: '0770000001',
+        onemoney: '0770000002',
+      } : null,
       pricing: {
         joiningFee: 3,
         monthlyFee: 2,

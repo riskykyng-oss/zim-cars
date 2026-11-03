@@ -263,6 +263,7 @@ const AdminDashboard = () => {
         <>
           <h2 className="text-xl font-bold mb-2">Dealer Subscription & Joining Payments</h2>
           <p className="text-sm text-gray-600 mb-4">
+            <span className="inline-block px-2 py-0.5 bg-yellow-200 text-yellow-900 rounded text-xs font-bold mr-2">TEST MODE</span>
             Verify each payment against your EcoCash statement before approving. Approving activates the dealer and
             sets a 1-month subscription. Reject only when the proof does not match a real transaction.
           </p>
@@ -289,7 +290,7 @@ const AdminDashboard = () => {
                       {dealerPayments.map((payment) => (
                         <tr key={payment.id} className="border-t">
                           <td className="px-4 py-2">
-                            <div className="font-semibold">{payment.dealer?.name}</div>
+                            <div className="font-semibold">{payment.dealer?.name} <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-900 rounded text-xs">TEST</span></div>
                             <div className="text-xs text-gray-500">{payment.dealer?.phone || payment.dealer?.slug}</div>
                           </td>
                           <td className="px-4 py-2 capitalize">{payment.type}</td>
