@@ -805,7 +805,6 @@ const DealerDashboard = () => {
                         </td>
                         <td className="px-4 py-2 text-sm">{sale.refCode || sale.lead?.referralCode || '-'}</td>
                         <td className="px-4 py-2">${sale.salePrice.toLocaleString()}</td>
-                        <td className="px-4 py-2">{sale.commissionRate}%</td>
                         <td className="px-4 py-2">${sale.commissionAmount.toFixed(2)}</td>
                         <td className="px-4 py-2">
                           <span className={`px-2 py-1 rounded text-xs ${
@@ -925,7 +924,7 @@ const DealerDashboard = () => {
 
           <div className="bg-white rounded shadow p-6">
             <h2 className="text-xl font-bold mb-2">Payments</h2>
-            <p className="text-sm text-gray-600 mb-4">EcoCash: <strong>{paymentInfo?.ecocash || '0773412018'}</strong> • Pricing: Joining $3, Subscription $2/month, Commission 3%</p>
+            <p className="text-sm text-gray-600 mb-4">EcoCash: <strong>{paymentInfo?.ecocash || '0773412018'}</strong> • Pricing: Joining $3, Subscription $2/month, Platform Fee ${paymentInfo?.pricing?.platformFee || 65} per confirmed platform sale</p>
             <form onSubmit={handlePaymentSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <select value={paymentForm.type} onChange={(e) => setPaymentForm({...paymentForm, type: e.target.value})} className="p-2 border rounded min-h-[44px]">
                 <option value="subscription">Subscription ($2)</option>

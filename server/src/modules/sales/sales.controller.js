@@ -40,15 +40,16 @@ export const createSale = async (req, res) => {
       return res.status(400).json({ error: 'This lead is not linked to a vehicle.' });
     }
 
-    // Commission only applies to platform-generated leads
+    // Platform fee only applies to platform-generated leads
     if (!lead.referralCode) {
       return res.status(400).json({ 
-        error: 'Commission can only be recorded for platform-generated leads. This lead has no platform reference and cannot be counted for commission.' 
+        error: 'Platform fee can only be recorded for platform-generated leads. This lead has no platform reference and cannot be counted for the platform fee.' 
       });
     }
 
-    const commissionRate = lead.dealer.commissionRate;
-    const commissionAmount = Math.round(salePrice * (commissionRate / 100) * 100) / 100;
+    const platformFee = Number(process.env.PLATFORM_COMMISSION_FEE) || 65;
+    const commissionRate = 0;
+    const commissionAmount = Math.round(platformFee * 100) / 100;
     const actor = req.session.email || req.session.userId;
 
     const sale = await prisma.$transaction(async (tx) => {

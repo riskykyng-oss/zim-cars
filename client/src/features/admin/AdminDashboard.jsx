@@ -166,22 +166,22 @@ const AdminDashboard = () => {
         <button onClick={() => setActiveTab('dealers')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'dealers' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Dealers ({dealersList.filter(d => d.verificationStatus !== 'verified').length})</button>
         <button onClick={() => setActiveTab('dealerPayments')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'dealerPayments' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Dealer Payments ({dealerPayments.filter(p => p.status === 'pending').length})</button>
         <button onClick={() => setActiveTab('sales')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'sales' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Sales & Referrals</button>
-        <button onClick={() => setActiveTab('commissions')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'commissions' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Commission by Ref</button>
+        <button onClick={() => setActiveTab('commissions')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'commissions' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Platform Fees by Ref</button>
         <button onClick={() => setActiveTab('qr')} className={`px-4 py-2 rounded min-h-[44px] ${activeTab === 'qr' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>QR Codes</button>
       </div>
       
       {activeTab === 'overview' && commissions && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-4 rounded shadow">
-            <h3 className="text-gray-500 text-sm">Commission Earned</h3>
+            <h3 className="text-gray-500 text-sm">Platform Fees Earned</h3>
             <p className="text-2xl font-bold">${commissions.totalCommissionEarned.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 rounded shadow">
-            <h3 className="text-gray-500 text-sm">Commission Paid</h3>
+            <h3 className="text-gray-500 text-sm">Fees Paid</h3>
             <p className="text-2xl font-bold text-green-600">${commissions.totalPaid.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 rounded shadow">
-            <h3 className="text-gray-500 text-sm">Commission Outstanding</h3>
+            <h3 className="text-gray-500 text-sm">Fees Outstanding</h3>
             <p className="text-2xl font-bold text-red-600">${commissions.totalOutstanding.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 rounded shadow">
@@ -380,7 +380,7 @@ const AdminDashboard = () => {
                     <th className="px-4 py-2 text-left">Dealer</th>
                     <th className="px-4 py-2 text-left">Ref</th>
                     <th className="px-4 py-2 text-left">Sale Price</th>
-                    <th className="px-4 py-2 text-left">Commission</th>
+                    <th className="px-4 py-2 text-left">Platform Fee</th>
                     <th className="px-4 py-2 text-left">Status</th>
                     <th className="px-4 py-2 text-left">Sold At</th>
                     <th className="px-4 py-2 text-left">Actions</th>
@@ -447,7 +447,7 @@ const AdminDashboard = () => {
       
       {activeTab === 'commissions' && (
         <>
-          <h2 className="text-xl font-bold mb-4">Commission by Referral Code</h2>
+          <h2 className="text-xl font-bold mb-4">Platform Fees by Referral Code</h2>
           <div className="bg-white rounded shadow overflow-hidden">
             <div className="hidden md:block">
               <table className="w-full">
@@ -456,7 +456,7 @@ const AdminDashboard = () => {
                     <th className="px-4 py-2 text-left">Referral Code</th>
                     <th className="px-4 py-2 text-left">Sales Count</th>
                     <th className="px-4 py-2 text-left">Total Sales</th>
-                    <th className="px-4 py-2 text-left">Total Commission</th>
+                    <th className="px-4 py-2 text-left">Total Platform Fees</th>
                   </tr>
                 </thead>
                 <tbody>

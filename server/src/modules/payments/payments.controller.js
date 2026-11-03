@@ -12,7 +12,8 @@ export const getPaymentInfo = async (req, res) => {
       pricing: {
         joiningFee: 3,
         monthlyFee: 2,
-        commissionRate: 3,
+        commissionRate: 0,
+        platformFee: Number(process.env.PLATFORM_COMMISSION_FEE) || 65,
         trialMonths: 2,
       },
     });
