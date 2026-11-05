@@ -121,9 +121,10 @@ const DealerPortfolio = () => {
             >
               {vehicle.images?.[0] ? (
                 <img
-                  src={vehicle.images[0].imageUrl}
+                  src={vehicle.images[0].url}
                   alt={`${vehicle.make} ${vehicle.model}`}
                   className="w-full h-48 object-cover"
+                  loading="lazy"
                 />
               ) : (
                 <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">

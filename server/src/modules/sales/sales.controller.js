@@ -40,10 +40,14 @@ export const createSale = async (req, res) => {
       return res.status(400).json({ error: 'This lead is not linked to a vehicle.' });
     }
 
-    // Platform fee only applies to platform-generated leads
-    if (!lead.referralCode) {
+    // Platform fee only applies to platform-generated (tracked) leads.
+    // A lead created through the website/app flow has a leadId; referralCode may
+    // also be present for campaign attribution. Walk-in/manual deals not tracked
+    // in the system must not generate platform fees.
+    const isPlatformLead = Boolean(lead.referralCode) || Boolean(lead.leadId);
+    if (!isPlatformLead) {
       return res.status(400).json({ 
-        error: 'Platform fee can only be recorded for platform-generated leads. This lead has no platform reference and cannot be counted for the platform fee.' 
+        error: 'Platform fee can only be recorded for platform-generated leads. This lead has no platform tracking reference and cannot be counted for the platform fee.' 
       });
     }
 

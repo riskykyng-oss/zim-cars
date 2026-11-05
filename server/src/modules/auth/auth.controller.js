@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { hasSupabaseStorage, uploadImageBuffer } from '../../config/supabase.js';
+import { hasSupabaseStorage, uploadImageBuffer, getSignedUrlForStoredUrl } from '../../config/supabase.js';
 import { uploadDir, ensureUploadDir } from '../../middleware/upload.js';
 
 const publicUser = (user) => ({
@@ -263,7 +263,7 @@ export const uploadVerification = async (req, res) => {
       data: { verificationStatus: 'in_review' },
     });
 
-    return res.status(201).json(verification);
+    return res.status(201).json({ ...verification, fileUrl: await getSignedUrlForStoredUrl(verification.fileUrl) });
   } catch (error) {
     console.error('Upload verification error:', error);
     return res.status(500).json({ error: 'Failed to upload document' });
@@ -281,6 +281,10 @@ export const getDealerVerification = async (req, res) => {
       include: { verifications: { orderBy: { createdAt: 'desc' } } },
     });
 
+    const verifications = await Promise.all((dealer?.verifications || []).map(async (v) => ({
+      ...v,
+      fileUrl: await getSignedUrlForStoredUrl(v.fileUrl),
+    })));
     return res.json({
       dealer: {
         status: dealer?.status,
@@ -299,7 +303,7 @@ export const getDealerVerification = async (req, res) => {
         coverUrl: dealer?.coverUrl,
         businessEmail: dealer?.businessEmail,
       },
-      verifications: dealer?.verifications || [],
+      verifications,
     });
   } catch (error) {
     console.error('Get verification error:', error);
@@ -311,12 +315,30 @@ export const getAllDealers = async (req, res) => {
   try {
     const dealers = await prisma.dealer.findMany({
       include: {
-        users: true,
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            dealerId: true,
+            createdAt: true,
+          },
+        },
         verifications: { orderBy: { createdAt: 'desc' } },
         payments: { orderBy: { createdAt: 'desc' }, take: 10 },
       },
       orderBy: { createdAt: 'desc' },
     });
+    // Sign sensitive document/proof URLs for admin viewing
+    for (const dealer of dealers) {
+      for (const v of dealer.verifications || []) {
+        v.fileUrl = await getSignedUrlForStoredUrl(v.fileUrl);
+      }
+      for (const p of dealer.payments || []) {
+        if (p.proofUrl) p.proofUrl = await getSignedUrlForStoredUrl(p.proofUrl);
+      }
+    }
     return res.json(dealers);
   } catch (error) {
     console.error('Get all dealers error:', error);

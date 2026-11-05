@@ -79,13 +79,8 @@ const Marketplace = () => {
   const handleQuickWhatsApp = async (e, vehicle) => {
     e.preventDefault();
     e.stopPropagation();
-    try {
-      const waRes = await api.get(`/leads/whatsapp/${vehicle.id}`);
-      window.open(waRes.data.whatsappUrl, '_blank');
-    } catch (error) {
-      console.error('Error generating WhatsApp link:', error);
-      alert('Error generating WhatsApp link');
-    }
+    // Redirect to vehicle detail so the enquiry is captured as a tracked lead.
+    window.location.href = `/vehicle/${vehicle.id}`;
   };
   
   const clearFilters = () => {

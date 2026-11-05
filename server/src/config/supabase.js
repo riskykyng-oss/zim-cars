@@ -56,3 +56,25 @@ export const deleteImageByUrl = async (imageUrl) => {
   if (error) throw error;
   return true;
 };
+
+// For sensitive documents (IDs, payment proofs), generate short-lived signed URLs
+// when reading records. Falls back to the original URL if signing is unavailable
+// (e.g., local dev without Supabase, or non-Supabase URLs).
+export const getSignedUrlForStoredUrl = async (storedUrl, expiresIn = 60 * 30) => {
+  if (!storedUrl || typeof storedUrl !== 'string') return storedUrl;
+  if (!supabase) return storedUrl;
+  // Match /object/public/<bucket>/<path> or /storage/v1/object/public/<bucket>/<path>
+  const match = storedUrl.match(/\/object\/public\/([^/]+)\/(.+?)(?:\?|$)/);
+  if (!match) return storedUrl;
+  const bucket = decodeURIComponent(match[1]);
+  const filePath = decodeURIComponent(match[2]);
+  // Only sign sensitive buckets; vehicle images remain public.
+  if (bucket === storageBucket) return storedUrl;
+  try {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(filePath, expiresIn);
+    if (error || !data?.signedUrl) return storedUrl;
+    return data.signedUrl;
+  } catch {
+    return storedUrl;
+  }
+};

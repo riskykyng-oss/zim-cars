@@ -1,7 +1,7 @@
 import prisma from '../../config/database.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { hasSupabaseStorage, uploadDocumentBuffer } from '../../config/supabase.js';
+import { hasSupabaseStorage, uploadDocumentBuffer, getSignedUrlForStoredUrl } from '../../config/supabase.js';
 import { uploadDir, ensureUploadDir } from '../../middleware/upload.js';
 import fs from 'fs';
 
@@ -104,7 +104,11 @@ export const getMyPayments = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    return res.json(payments);
+    const signed = await Promise.all(payments.map(async (p) => ({
+      ...p,
+      proofUrl: p.proofUrl ? await getSignedUrlForStoredUrl(p.proofUrl) : null,
+    })));
+    return res.json(signed);
   } catch (error) {
     console.error('Get my payments error:', error);
     return res.status(500).json({ error: 'Failed to fetch payments' });
@@ -120,7 +124,11 @@ export const getAllPayments = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    return res.json(payments);
+    const signed = await Promise.all(payments.map(async (p) => ({
+      ...p,
+      proofUrl: p.proofUrl ? await getSignedUrlForStoredUrl(p.proofUrl) : null,
+    })));
+    return res.json(signed);
   } catch (error) {
     console.error('Get all payments error:', error);
     return res.status(500).json({ error: 'Failed to fetch payments' });

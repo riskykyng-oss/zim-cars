@@ -22,14 +22,15 @@ const AdminDashboard = () => {
   
   const fetchData = async () => {
     try {
-      const [commRes, salesRes, paymentsRes, dealerPaymentsRes, dealersRes, leadsRes, vehiclesRes] = await Promise.all([
+      const [commRes, salesRes, paymentsRes, dealerPaymentsRes, dealersRes, leadsRes, vehiclesRes, paymentInfoRes] = await Promise.all([
         api.get('/commissions/summary'),
         api.get('/sales'),
         api.get('/commissions/payments'),
         api.get('/payments/all').catch(() => ({ data: [] })),
         api.get('/auth/dealers').catch(() => ({ data: [] })),
         api.get('/leads'),
-        api.get('/vehicles/all').catch(() => api.get('/vehicles'))
+        api.get('/vehicles/all').catch(() => api.get('/vehicles')),
+        api.get('/payments/info').catch(() => ({ data: null })),
       ]);
       setCommissions(commRes.data);
       setSales(salesRes.data);
@@ -38,6 +39,7 @@ const AdminDashboard = () => {
       setDealersList(dealersRes.data);
       setLeads(leadsRes.data);
       setVehicles(vehiclesRes.data);
+      setPaymentInfo(paymentInfoRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -263,7 +265,7 @@ const AdminDashboard = () => {
         <>
           <h2 className="text-xl font-bold mb-2">Dealer Subscription & Joining Payments</h2>
           <p className="text-sm text-gray-600 mb-4">
-            <span className="inline-block px-2 py-0.5 bg-yellow-200 text-yellow-900 rounded text-xs font-bold mr-2">TEST MODE</span>
+            {paymentInfo?.testMode && <span className="inline-block px-2 py-0.5 bg-yellow-200 text-yellow-900 rounded text-xs font-bold mr-2">TEST MODE</span>}
             Verify each payment against your EcoCash statement before approving. Approving activates the dealer and
             sets a 1-month subscription. Reject only when the proof does not match a real transaction.
           </p>
@@ -290,7 +292,7 @@ const AdminDashboard = () => {
                       {dealerPayments.map((payment) => (
                         <tr key={payment.id} className="border-t">
                           <td className="px-4 py-2">
-                            <div className="font-semibold">{payment.dealer?.name} <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-900 rounded text-xs">TEST</span></div>
+                            <div className="font-semibold">{payment.dealer?.name} {paymentInfo?.testMode && <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-900 rounded text-xs">TEST</span>}</div>
                             <div className="text-xs text-gray-500">{payment.dealer?.phone || payment.dealer?.slug}</div>
                           </td>
                           <td className="px-4 py-2 capitalize">{payment.type}</td>
@@ -396,7 +398,7 @@ const AdminDashboard = () => {
                       <td className="px-4 py-2">{sale.lead?.dealer?.name || '-'}</td>
                       <td className="px-4 py-2 text-sm">{sale.refCode || sale.lead?.referralCode || '-'}</td>
                       <td className="px-4 py-2">${sale.salePrice?.toLocaleString()}</td>
-                      <td className="px-4 py-2">${sale.commissionAmount?.toFixed(2)} ({sale.commissionRate}%)</td>
+                      <td className="px-4 py-2">${sale.commissionAmount?.toFixed(2)}</td>
                       <td className="px-4 py-2">
                         <span className={`px-2 py-1 rounded text-xs ${
                           sale.status === 'confirmed' || sale.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -434,7 +436,7 @@ const AdminDashboard = () => {
                     <span className={`px-2 py-1 rounded text-xs ${sale.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{sale.status}</span>
                   </div>
                   <p className="text-sm text-gray-600">{sale.lead?.dealer?.name} • Ref: {sale.refCode || sale.lead?.referralCode || '-'}</p>
-                  <p className="text-sm">Sale ${sale.salePrice?.toLocaleString()} • Commission ${sale.commissionAmount?.toFixed(2)} ({sale.commissionRate}%)</p>
+                  <p className="text-sm">Sale ${sale.salePrice?.toLocaleString()} • Platform Fee ${sale.commissionAmount?.toFixed(2)}</p>
                   <div className="flex gap-2 mt-2">
                     {sale.status === 'pending' && <button onClick={() => confirmSale(sale.id)} className="bg-blue-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Confirm</button>}
                     <button onClick={() => recordPayment(sale.id)} className="bg-green-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Record Payment</button>

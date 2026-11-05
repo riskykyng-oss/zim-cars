@@ -215,9 +215,34 @@ const DealerDashboard = () => {
     }
   };
   
+  const newLeadsCount = leads.filter((l) => l.status === 'new').length;
+  const pendingSalesCount = sales.filter((s) => s.status === 'pending').length;
+  const confirmedFees = sales
+    .filter((s) => s.status === 'confirmed' || s.status === 'completed')
+    .reduce((sum, s) => sum + (s.commissionAmount || 0), 0);
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Dealer Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6">Dealer Dashboard</h1>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white rounded shadow p-4">
+          <p className="text-xs text-gray-500">Vehicles</p>
+          <p className="text-2xl font-bold">{vehicles.length}</p>
+        </div>
+        <div className="bg-white rounded shadow p-4">
+          <p className="text-xs text-gray-500">New Leads</p>
+          <p className="text-2xl font-bold text-blue-600">{newLeadsCount}</p>
+        </div>
+        <div className="bg-white rounded shadow p-4">
+          <p className="text-xs text-gray-500">Sales Pending</p>
+          <p className="text-2xl font-bold text-amber-600">{pendingSalesCount}</p>
+        </div>
+        <div className="bg-white rounded shadow p-4">
+          <p className="text-xs text-gray-500">Confirmed Fees</p>
+          <p className="text-2xl font-bold text-green-600">${confirmedFees.toFixed(2)}</p>
+        </div>
+      </div>
       
       <div className="bg-white rounded shadow p-6 mb-6">
         <h2 className="text-lg font-bold mb-3">Company Profile</h2>
@@ -492,13 +517,25 @@ const DealerDashboard = () => {
                     <tbody>
                       {vehicles.map((vehicle) => (
                         <tr key={vehicle.id} className="border-t">
-                          <td className="px-4 py-2">{vehicle.make} {vehicle.model}</td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              {vehicle.images?.[0]?.url ? (
+                                <img src={vehicle.images[0].url} alt="" className="w-12 h-9 object-cover rounded" loading="lazy" />
+                              ) : (
+                                <div className="w-12 h-9 bg-gray-100 rounded flex items-center justify-center text-[10px] text-gray-400">No img</div>
+                              )}
+                              <span>{vehicle.make} {vehicle.model}</span>
+                            </div>
+                          </td>
                           <td className="px-4 py-2">{vehicle.year || '-'}</td>
                           <td className="px-4 py-2">${vehicle.price?.toLocaleString()}</td>
                           <td className="px-4 py-2">{vehicle.images?.length || 0}</td>
                           <td className="px-4 py-2">
                             <span className={`px-2 py-1 rounded text-xs ${
-                              vehicle.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                              vehicle.status === 'available' ? 'bg-green-100 text-green-800' :
+                              vehicle.status === 'sold' ? 'bg-blue-100 text-blue-800' :
+                              vehicle.status === 'unpublished' ? 'bg-gray-100 text-gray-800' :
+                              'bg-yellow-100 text-yellow-800'
                             }`}>
                               {vehicle.status}
                             </span>
@@ -539,13 +576,24 @@ const DealerDashboard = () => {
                 <div className="md:hidden divide-y">
                   {vehicles.map((vehicle) => (
                     <div key={vehicle.id} className="p-4">
-                      <div className="flex justify-between mb-1">
-                        <span className="font-semibold">{vehicle.make} {vehicle.model} {vehicle.year || ''}</span>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          vehicle.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>{vehicle.status}</span>
+                      <div className="flex gap-3">
+                        {vehicle.images?.[0]?.url ? (
+                          <img src={vehicle.images[0].url} alt="" className="w-20 h-16 object-cover rounded" loading="lazy" />
+                        ) : (
+                          <div className="w-20 h-16 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">No img</div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between mb-1 gap-2">
+                            <span className="font-semibold truncate">{vehicle.make} {vehicle.model} {vehicle.year || ''}</span>
+                            <span className={`px-2 py-1 rounded text-xs shrink-0 ${
+                              vehicle.status === 'available' ? 'bg-green-100 text-green-800' :
+                              vehicle.status === 'sold' ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>{vehicle.status}</span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">${vehicle.price?.toLocaleString()} • {vehicle.images?.length || 0} images</p>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">${vehicle.price?.toLocaleString()} • {vehicle.images?.length || 0} images</p>
                       <div className="flex flex-wrap gap-2">
                         <button onClick={() => openEditModal(vehicle)} className="bg-blue-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Edit</button>
                         <button onClick={() => setSelectedVehicle(vehicle)} className="bg-purple-600 text-white px-3 py-2 rounded text-sm min-h-[44px]">Upload Image</button>
@@ -710,7 +758,7 @@ const DealerDashboard = () => {
                             <option value="lost">lost</option>
                             <option value="unreachable">unreachable</option>
                           </select>
-                          {lead.status !== 'sold' && !lead.sale && lead.referralCode && (
+                          {lead.status !== 'sold' && !lead.sale && (lead.referralCode || lead.leadId) && (
                             <button
                               onClick={() => {
                                 const price = prompt('Sale price ($)');
@@ -722,7 +770,7 @@ const DealerDashboard = () => {
                               Mark sold
                             </button>
                           )}
-                          {!lead.referralCode && lead.status !== 'sold' && !lead.sale && <span className="text-xs text-red-600">No commission (no ref)</span>}
+                          {!lead.referralCode && !lead.leadId && lead.status !== 'sold' && !lead.sale && <span className="text-xs text-gray-500">Not platform-tracked</span>}
                         </td>
                       </tr>
                     ))}
@@ -754,12 +802,12 @@ const DealerDashboard = () => {
                         <option value="sold">sold</option>
                         <option value="lost">lost</option>
                       </select>
-                      {lead.status !== 'sold' && !lead.sale && (
+                      {lead.status !== 'sold' && !lead.sale && (lead.referralCode || lead.leadId) && (
                         <button
                           onClick={() => {
                             const price = prompt('Sale price ($)');
                             if (!price) return;
-                            api.post('/sales', { leadId: lead.id, salePrice: price }).then(() => fetchData());
+                            api.post('/sales', { leadId: lead.id, salePrice: price }).then(() => fetchData()).catch(err => alert(err.response?.data?.error || 'Error'));
                           }}
                           className="bg-green-600 text-white px-3 py-2 rounded text-sm min-h-[44px]"
                         >
@@ -791,8 +839,7 @@ const DealerDashboard = () => {
                       <th className="px-4 py-2 text-left">Vehicle</th>
                       <th className="px-4 py-2 text-left">Ref</th>
                       <th className="px-4 py-2 text-left">Sale Price</th>
-                      <th className="px-4 py-2 text-left">Commission Rate</th>
-                      <th className="px-4 py-2 text-left">Commission</th>
+                      <th className="px-4 py-2 text-left">Platform Fee</th>
                       <th className="px-4 py-2 text-left">Status</th>
                       <th className="px-4 py-2 text-left">Sold</th>
                     </tr>
@@ -829,7 +876,7 @@ const DealerDashboard = () => {
                       }`}>{sale.status}</span>
                     </div>
                     <p className="text-sm text-gray-600">Ref: {sale.refCode || sale.lead?.referralCode || '-'}</p>
-                    <p className="text-sm">Sale ${sale.salePrice.toLocaleString()} • Commission ${sale.commissionAmount.toFixed(2)} ({sale.commissionRate}%)</p>
+                    <p className="text-sm">Sale ${sale.salePrice.toLocaleString()} • Platform Fee ${sale.commissionAmount.toFixed(2)}</p>
                     <p className="text-xs text-gray-500">{new Date(sale.soldAt).toLocaleDateString()}</p>
                   </div>
                 ))}

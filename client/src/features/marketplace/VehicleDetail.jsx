@@ -233,7 +233,7 @@ const VehicleDetail = () => {
               </>
             ) : (
               <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg">
-                <p className="font-semibold mb-1">âœ“ Enquiry sent</p>
+                <p className="font-semibold mb-1">Enquiry sent</p>
                 <p className="text-sm">WhatsApp should have opened with your pre-filled message.</p>
               </div>
             )}
@@ -300,6 +300,71 @@ const VehicleDetail = () => {
               </div>
             )}
           </div>
+
+          {/* Mobile enquiry form modal */}
+          {showEnquiry && !enquirySent && (
+            <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+              <div className="bg-white w-full sm:max-w-md rounded-t-xl sm:rounded-xl p-6 max-h-[90vh] overflow-y-auto">
+                <h3 className="text-lg font-semibold mb-4">Enter your details</h3>
+                <form onSubmit={handleEnquiry}>
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2 text-gray-700 mb-2 text-sm font-medium">
+                      <User className="w-4 h-4" />
+                      Name (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={buyerName}
+                      onChange={(e) => setBuyerName(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px]"
+                      placeholder="Enter your name"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2 text-gray-700 mb-2 text-sm font-medium">
+                      <Phone className="w-4 h-4" />
+                      Phone *
+                    </label>
+                    <input
+                      type="tel"
+                      value={buyerPhone}
+                      onChange={(e) => setBuyerPhone(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px]"
+                      placeholder="0771234567 or +263771234567"
+                      required
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="text-gray-700 mb-2 text-sm font-medium block">Referral code</label>
+                    <input
+                      type="text"
+                      value={refCode}
+                      onChange={(e) => setRefCode(e.target.value.toUpperCase())}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px]"
+                      placeholder="Auto-filled if present"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 min-h-[44px]"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      {submitting ? 'Sending...' : 'Chat on WhatsApp'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowEnquiry(false)}
+                      className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors min-h-[44px]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       

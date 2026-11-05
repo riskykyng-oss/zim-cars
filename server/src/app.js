@@ -65,6 +65,19 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(session(sessionConfig));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Basic CSRF mitigation for cookie-authenticated state changes: require a
+// same-origin Origin/Referer on mutating requests when an Origin header is
+// present. Browsers send Origin on CORS/fetch; this blocks cross-site
+// form/fetch attempts that somehow bypass CORS preflight expectations.
+app.use('/api', (req, res, next) => {
+  const method = req.method.toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return next();
+  const origin = req.headers.origin;
+  if (!origin) return next(); // same-origin/non-browser requests
+  if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return next();
+  return res.status(403).json({ error: 'Invalid request origin.' });
+});
+
 // Health check should not be rate limited.
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
